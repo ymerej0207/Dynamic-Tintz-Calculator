@@ -25,7 +25,7 @@
   @media (max-width:1100px){.controls{grid-template-columns:repeat(6,1fr)}} @media (max-width:700px){.controls{grid-template-columns:repeat(2,1fr)}}
   .controls label{display:block;font-size:12px;margin-bottom:6px;color:#334155}
   .controls input[type="number"], .controls select, .controls input[type="text"]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--text)}
-  .controls button{padding:12px 14px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:10px;cursor:pointer}
+  .controls button{padding:12px 14px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:10px;cursor:pointer;transition:transform .08s ease-out}
   .controls button.primary{border-color:var(--accent);background:var(--chip)} .controls button:active{transform:translateY(1px)}
   table{width:100%;border-collapse:collapse;margin-top:16px} th,td{padding:12px;border-bottom:1px solid var(--border);text-align:right;font-size:15px}
   th{text-align:right;color:#0f172a;font-weight:700} th:first-child,td:first-child{text-align:left} tfoot td{font-weight:700}
@@ -121,8 +121,12 @@
         <header><h3>Settings</h3><div style="display:flex; gap:12px; align-items:center;">
           <div><label for="logoMode">Logo Mode: </label>
             <select id="logoMode"><option value="auto" selected>Auto</option><option value="light">Light</option><option value="dark">Dark</option></select>
-          </div></div>
-        </header>
+          </div>
+          <div>
+            <label for="tapFeedback">Tap feedback (haptic where supported): </label>
+            <select id="tapFeedback"><option value="on" selected>On</option><option value="off">Off</option></select>
+          </div>
+        </div></header>
         <div class="content" id="settingsContent">
           <div class="row"><div>Room Presets (comma-separated)</div><div><input id="presetInput" class="presets" type="text"></div></div>
           <div class="row"><div></div><div><button id="savePresets" class="primary">Save Presets</button><span class="note">Saved locally on this device.</span></div></div>
@@ -184,6 +188,19 @@ const DEFAULT_PRESETS = ["Kitchen","Bathroom","Bedroom","Living Room","Dining Ro
 function getPresets(){ const raw = localStorage.getItem('dt_room_presets'); if (!raw) return DEFAULT_PRESETS.slice(); try { const arr = JSON.parse(raw); if (Array.isArray(arr) && arr.length) return arr; return DEFAULT_PRESETS.slice(); } catch { return DEFAULT_PRESETS.slice(); } }
 function setPresets(arr){ localStorage.setItem('dt_room_presets', JSON.stringify(arr)); }
 
+// Tap feedback
+function shouldHaptic(){
+  const val = (localStorage.getItem('dt_tap_feedback') || 'on');
+  return val === 'on';
+}
+function setHaptic(val){
+  localStorage.setItem('dt_tap_feedback', val);
+}
+function tryHaptic(){
+  if (!shouldHaptic()) return;
+  try { if ('vibrate' in navigator) navigator.vibrate(15); } catch(e) { /* no-op */ }
+}
+
 // Label picker
 const labelOverlay = document.getElementById('labelOverlay');
 const labelList = document.getElementById('labelList');
@@ -195,16 +212,16 @@ document.getElementById('searchLabels').addEventListener('input', (e)=> renderLa
 function renderLabelList(q=''){ const data = getPresets(); const query = q.trim().toLowerCase(); const filtered = !query ? data : data.filter(x => x.toLowerCase().includes(query)); labelList.innerHTML = ''; filtered.forEach(lbl => { const b = document.createElement('button'); b.textContent = lbl; b.addEventListener('click', ()=>{ document.getElementById('label').value = lbl; closeLabelPicker(); }); labelList.appendChild(b); }); }
 
 // Session
-function serialize(){ const rows = [...tbody.querySelectorAll('tr')].map(tr => ({ label: tr.dataset.label || '', w: parseFloat(tr.dataset.w), h: parseFloat(tr.dataset.h), u: tr.dataset.u, q: parseInt(tr.dataset.q,10) })); return { customer: ($('#customer').value || '').trim(), rows, baselineRate: parseFloat($('#baselineRate').value) || 12, logoMode: $('#logoMode').value }; }
+function serialize(){ const rows = [...tbody.querySelectorAll('tr')].map(tr => ({ label: tr.dataset.label || '', w: parseFloat(tr.dataset.w), h: parseFloat(tr.dataset.h), u: tr.dataset.u, q: parseInt(tr.dataset.q,10) })); return { customer: ($('#customer').value || '').trim(), rows, baselineRate: parseFloat($('#baselineRate').value) || 12, logoMode: $('#logoMode').value, tapFeedback: (localStorage.getItem('dt_tap_feedback')||'on') }; }
 function saveSession(){ localStorage.setItem('dt_estimator', JSON.stringify(serialize())); }
-function loadSession(){ const raw = localStorage.getItem('dt_estimator'); if(!raw) return; try { const data = JSON.parse(raw); if (data.customer) $('#customer').value = data.customer; tbody.innerHTML = ''; (data.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q)); if (data.baselineRate) $('#baselineRate').value = data.baselineRate; if (data.logoMode) $('#logoMode').value = data.logoMode; } catch(e){ console.warn('Failed to load session', e); } }
+function loadSession(){ const raw = localStorage.getItem('dt_estimator'); if(!raw) return; try { const data = JSON.parse(raw); if (data.customer) $('#customer').value = data.customer; tbody.innerHTML = ''; (data.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q)); if (data.baselineRate) $('#baselineRate').value = data.baselineRate; if (data.logoMode) $('#logoMode').value = data.logoMode; if (data.tapFeedback) setHaptic(data.tapFeedback); } catch(e){ console.warn('Failed to load session', e); } }
 
 // Jobs
 function getJobs(){ const raw = localStorage.getItem('dt_jobs'); if (!raw) return []; try{ const arr=JSON.parse(raw); return Array.isArray(arr)?arr:[]; }catch{ return []; } }
 function setJobs(arr){ localStorage.setItem('dt_jobs', JSON.stringify(arr)); }
 function quickMeta(){ const rows = [...tbody.querySelectorAll('tr')]; let sqft=0, units=0, total=0; rows.forEach(tr=>{ const w=parseFloat(tr.dataset.w), h=parseFloat(tr.dataset.h), u=tr.dataset.u, q=parseInt(tr.dataset.q,10); const s = toSqFt(w,h,u); sqft += s*q; units += q; const per = parseFloat((tr.querySelector('.unitPrice').textContent||'$0').replace('$',''))||0; total += per*s*q; }); return {sqft, units, total}; }
 function saveJob(){ const data = serialize(); const id = uid(); const meta = quickMeta(); const job = Object.assign({}, data, { id, createdAt: nowISO(), meta }); const jobs = getJobs(); jobs.unshift(job); setJobs(jobs); alert('Job saved locally.'); }
-function loadJobById(id){ const jobs = getJobs(); const job = jobs.find(j => j.id === id); if (!job) return; $('#customer').value = job.customer || ''; tbody.innerHTML = ''; (job.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q)); $('#baselineRate').value = job.baselineRate || 12; $('#logoMode').value = job.logoMode || 'auto'; recalc(); saveSession(); }
+function loadJobById(id){ const jobs = getJobs(); const job = jobs.find(j => j.id === id); if (!job) return; $('#customer').value = job.customer || ''; tbody.innerHTML = ''; (job.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q)); $('#baselineRate').value = job.baselineRate || 12; $('#logoMode').value = job.logoMode || 'auto'; if (job.tapFeedback) setHaptic(job.tapFeedback); recalc(); saveSession(); }
 function deleteJobById(id){ setJobs(getJobs().filter(j => j.id !== id)); }
 function exportJobs(){ const jobs = getJobs(); const blob = new Blob([JSON.stringify(jobs, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'dynamic_tintz_jobs.json'; a.click(); URL.revokeObjectURL(url); }
 function importJobs(file){ const reader = new FileReader(); reader.onload = (e)=>{ try { const incoming = JSON.parse(e.target.result); if (!Array.isArray(incoming)) throw new Error('Invalid format'); const existing = getJobs(); const map = new Map(existing.map(j=>[j.id, j])); incoming.forEach(j=>{ if(!map.has(j.id)) map.set(j.id, j); }); const merged = Array.from(map.values()).sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||'')); setJobs(merged); renderJobs(); alert('Jobs imported.'); } catch(err) { alert('Import failed: '+ err.message); } }; reader.readAsText(file); }
@@ -228,30 +245,11 @@ document.getElementById('searchJobs').addEventListener('input', (e)=> renderJobs
 document.getElementById('exportJobs').addEventListener('click', exportJobs);
 document.getElementById('importJobs').addEventListener('change', (e)=>{ if(e.target.files && e.target.files[0]) importJobs(e.target.files[0]); });
 
-// Logo
 const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 function applyLogo(){ const mode = ($('#logoMode').value || 'auto'); const isDark = mql && mql.matches; let useDark = (mode === 'auto') ? isDark : (mode === 'dark'); $('#brandLogo').src = useDark ? 'logo-dark.png' : 'logo-light.png'; }
 if (mql) mql.addEventListener('change', applyLogo);
 
-// Core table logic
-function addLine(label,w,h,u,q){ if(!(w>0 && h>0 && q>0)) return; const tr = document.createElement('tr'); tr.dataset.label = (label||'').trim(); tr.dataset.w = w; tr.dataset.h = h; tr.dataset.u = u; tr.dataset.q = q; const sqft = toSqFt(w,h,u); tr.innerHTML = `
-    <td>${tr.dataset.label}</td><td>${w} x ${h}</td><td>${u}</td><td class="right">${q}</td>
-    <td class="right perSq">${fmt2(sqft)}</td><td class="right lineSqFt">${fmt2(sqft*q)}</td>
-    <td class="right unitPrice">$0.00</td><td class="right linePrice">$0.00</td>
-    <td class="row-actions"><button class="btn-icon duplicate" title="Duplicate">＋</button><button class="btn-icon delete" title="Delete">✕</button></td>`;
-  tr.querySelector('.delete').addEventListener('click', ()=>{ tr.remove(); recalc(); saveSession(); });
-  tr.querySelector('.duplicate').addEventListener('click', ()=>{ const w = parseFloat(tr.dataset.w), h = parseFloat(tr.dataset.h), u = tr.dataset.u, lbl = tr.dataset.label; addLine(lbl, w, h, u, 1); });
-  tbody.appendChild(tr); recalc(); saveSession(); }
-
-function collectTotals(){ let totalSqft = 0, totalUnits = 0; [...tbody.querySelectorAll('tr')].forEach(tr => { const sqft = toSqFt(parseFloat(tr.dataset.w), parseFloat(tr.dataset.h), tr.dataset.u); const q = parseInt(tr.dataset.q,10); totalSqft += sqft * q; totalUnits += q; }); return { totalSqft, totalUnits }; }
-function recalc(){ const { totalSqft, totalUnits } = collectTotals(); const pricePer = unitPrice(totalSqft); [...tbody.querySelectorAll('tr')].forEach(tr => { const sqft = toSqFt(parseFloat(tr.dataset.w), parseFloat(tr.dataset.h), tr.dataset.u); const q = parseInt(tr.dataset.q,10); tr.querySelector('.lineSqFt').textContent = fmt2(sqft*q); tr.querySelector('.unitPrice').textContent = money(pricePer); tr.querySelector('.linePrice').textContent = money(pricePer * sqft * q); }); $('#kpiTotal').textContent = fmt2(totalSqft) + ' sqft'; $('#kpiUnits').textContent = (totalUnits||0).toString(); const perWindowAvg = totalUnits>0 ? totalSqft/totalUnits : 0; $('#kpiAvg').textContent = fmt2(perWindowAvg) + ' sqft'; $('#kpiPrice').textContent = money(pricePer) + ' / sqft'; const lines = tbody.querySelectorAll('tr').length; $('#summaryBadge').textContent = `${lines} ${lines===1?'line':'lines'} • ${fmt2(totalSqft)} sqft`; let currentTotal = 0; [...tbody.querySelectorAll('.linePrice')].forEach(td => { currentTotal += parseFloat(td.textContent.replace('$','')); }); $('#totalPrice').textContent = money(currentTotal); const baseline = parseFloat($('#baselineRate').value) || 12; const baselineTotal = baseline * totalSqft; const savings = Math.max(baselineTotal - currentTotal, 0); const pct = baselineTotal > 0 ? (savings / baselineTotal * 100) : 0; $('#baselineTotal').textContent = money(baselineTotal); $('#currentTotal').textContent = money(currentTotal); $('#savings').textContent = money(savings); $('#savingsPct').textContent = fmt2(pct) + '%'; }
-
-// Settings toggle
-const toggle = document.getElementById('toggleSettings'); const settings = document.getElementById('settings'); const settingsContent = document.getElementById('settingsContent'); let settingsOpen = false;
-toggle.addEventListener('click', ()=>{ settingsOpen = !settingsOpen; settingsContent.style.display = settingsOpen ? 'block' : 'none'; });
-document.getElementById('savePresets').addEventListener('click', ()=>{ const raw = document.getElementById('presetInput').value || ''; const arr = raw.split(',').map(s => s.trim()).filter(Boolean); const unique = Array.from(new Set(arr)); setPresets(unique); alert('Room presets saved.'); });
-
-// Buttons
+// Add Line handler with haptic + micro-bounce + clear
 document.getElementById('add').addEventListener('click', ()=>{ 
   const labelEl = document.getElementById('label');
   const wEl = document.getElementById('width');
@@ -266,28 +264,102 @@ document.getElementById('add').addEventListener('click', ()=>{
   const u = uEl.value;
   const q = parseInt(qEl.value || '1', 10);
 
+  addBtn.style.transform = 'scale(0.96)';
+  tryHaptic();
+  setTimeout(()=>{ addBtn.style.transform = ''; }, 80);
+
   addLine(label,w,h,u,q);
 
-  // Immediate, visible confirmation + prep for next entry
-  labelEl.value = '';
-  wEl.value = '';
-  hEl.value = '';
-  qEl.value = '1';
-  wEl.focus();
-
-  const original = addBtn.textContent;
-  addBtn.textContent = 'Added ✓';
-  setTimeout(()=>{ addBtn.textContent = original; }, 600);
+  labelEl.value = ''; wEl.value = ''; hEl.value = ''; qEl.value = '1'; wEl.focus();
+  const original = addBtn.textContent; addBtn.textContent = 'Added ✓'; setTimeout(()=>{ addBtn.textContent = original; }, 600);
 });
+
 document.getElementById('clear').addEventListener('click', ()=>{ tbody.innerHTML=''; recalc(); saveSession(); });
+
+// CSV + Copy Summary (unchanged)
 document.getElementById('exportCsv').addEventListener('click', ()=>{ let csv = 'Customer,Label,Width,Height,Units,Quantity,SqFt per Window,Line SqFt,Unit Price,Line Price\n'; const customer = ($('#customer').value || '').replace(/,/g,''); [...tbody.querySelectorAll('tr')].forEach(tr => { const lbl = (tr.dataset.label || '').replace(/,/g,''); const w = tr.dataset.w, h = tr.dataset.h, u = tr.dataset.u, q = tr.dataset.q; const perSq = tr.querySelector('.perSq').textContent; const lineSq = tr.querySelector('.lineSqFt').textContent; const up = tr.querySelector('.unitPrice').textContent; const lp = tr.querySelector('.linePrice').textContent; csv += `${customer},${lbl},${w},${h},${u},${q},${perSq},${lineSq},${up},${lp}\n`; }); const totalText = document.getElementById('totalPrice').textContent; csv += `,,,,,,,Total,${totalText}\n`; const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'dynamic_tintz_estimate.csv'; a.click(); URL.revokeObjectURL(url); });
 document.getElementById('copySummary').addEventListener('click', ()=>{ const baseline = parseFloat($('#baselineRate').value) || 12; const totalSqft = parseFloat((document.getElementById('kpiTotal').textContent||'0').replace(' sqft','')) || 0; const currentTotal = parseFloat($('#currentTotal').textContent.replace('$','')); const baselineTotal = baseline * totalSqft; const savings = Math.max(baselineTotal - currentTotal, 0); const pct = baselineTotal > 0 ? (savings / baselineTotal * 100) : 0; const text = `Dynamic Tintz Estimate\nCustomer: ${($('#customer').value||'').trim()}\nTotal sqft: ${fmt2(totalSqft)} sqft\nEffective rate: ${$('#kpiPrice').textContent}\nCurrent total: ${$('#currentTotal').textContent}\nBaseline ($${fmt2(baseline)}/sqft): $${fmt2(baselineTotal)}\nTier discount savings: $${fmt2(savings)} (${fmt2(pct)}%)`; navigator.clipboard.writeText(text).then(()=>{ alert('Summary copied to clipboard.'); }); });
 
-// Settings & logo init
-const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-document.getElementById('logoMode').addEventListener('change', ()=>{ applyLogo(); saveSession(); });
-if (mql) mql.addEventListener('change', applyLogo);
-function init(){ if (!localStorage.getItem('dt_room_presets')) setPresets(DEFAULT_PRESETS); document.getElementById('presetInput').value = getPresets().join(','); applyLogo(); recalc(); }
+// Settings: open/close + persist tap feedback
+const toggle = document.getElementById('toggleSettings'); const settingsContent = document.getElementById('settingsContent'); let settingsOpen = false;
+toggle.addEventListener('click', ()=>{ settingsOpen = !settingsOpen; settingsContent.style.display = settingsOpen ? 'block' : 'none'; });
+document.getElementById('savePresets').addEventListener('click', ()=>{ const raw = document.getElementById('presetInput').value || ''; const arr = raw.split(',').map(s => s.trim()).filter(Boolean); const unique = Array.from(new Set(arr)); setPresets(unique); alert('Room presets saved.'); });
+
+const tapSel = document.getElementById('tapFeedback');
+tapSel.value = (localStorage.getItem('dt_tap_feedback') || 'on');
+tapSel.addEventListener('change', (e)=> setHaptic(e.target.value) );
+
+const mqlInit = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+if (mqlInit) mqlInit.addEventListener('change', applyLogo);
+
+function recalc(){
+  const { totalSqft, totalUnits } = collectTotals();
+  const pricePer = unitPrice(totalSqft);
+
+  [...tbody.querySelectorAll('tr')].forEach(tr => {
+    const sqft = toSqFt(parseFloat(tr.dataset.w), parseFloat(tr.dataset.h), tr.dataset.u);
+    const q = parseInt(tr.dataset.q,10);
+    tr.querySelector('.lineSqFt').textContent = fmt2(sqft*q);
+    tr.querySelector('.unitPrice').textContent = money(pricePer);
+    tr.querySelector('.linePrice').textContent = money(pricePer * sqft * q);
+  });
+
+  document.getElementById('kpiTotal').textContent = fmt2(totalSqft) + ' sqft';
+  document.getElementById('kpiUnits').textContent = (totalUnits||0).toString();
+  const perWindowAvg = totalUnits>0 ? totalSqft/totalUnits : 0;
+  document.getElementById('kpiAvg').textContent = fmt2(perWindowAvg) + ' sqft';
+  document.getElementById('kpiPrice').textContent = money(pricePer) + ' / sqft';
+
+  const lines = tbody.querySelectorAll('tr').length;
+  document.getElementById('summaryBadge').textContent = `${lines} ${lines===1?'line':'lines'} • ${fmt2(totalSqft)} sqft`;
+
+  let currentTotal = 0;
+  [...tbody.querySelectorAll('.linePrice')].forEach(td => { currentTotal += parseFloat(td.textContent.replace('$','')); });
+  document.getElementById('totalPrice').textContent = money(currentTotal);
+
+  const baseline = parseFloat(document.getElementById('baselineRate').value) || 12;
+  const baselineTotal = baseline * totalSqft;
+  const savings = Math.max(baselineTotal - currentTotal, 0);
+  const pct = baselineTotal > 0 ? (savings / baselineTotal * 100) : 0;
+
+  document.getElementById('baselineTotal').textContent = money(baselineTotal);
+  document.getElementById('currentTotal').textContent = money(currentTotal);
+  document.getElementById('savings').textContent = money(savings);
+  document.getElementById('savingsPct').textContent = fmt2(pct) + '%';
+}
+
+function collectTotals(){
+  let totalSqft = 0, totalUnits = 0;
+  [...tbody.querySelectorAll('tr')].forEach(tr => {
+    const sqft = toSqFt(parseFloat(tr.dataset.w), parseFloat(tr.dataset.h), tr.dataset.u);
+    const q = parseInt(tr.dataset.q,10);
+    totalSqft += sqft * q;
+    totalUnits += q;
+  });
+  return { totalSqft, totalUnits };
+}
+
+function addLine(label,w,h,u,q){
+  if(!(w>0 && h>0 && q>0)) return;
+  const tr = document.createElement('tr');
+  tr.dataset.label = (label||'').trim();
+  tr.dataset.w = w; tr.dataset.h = h; tr.dataset.u = u; tr.dataset.q = q;
+  const sqft = toSqFt(w,h,u);
+  tr.innerHTML = `
+    <td>${tr.dataset.label}</td><td>${w} x ${h}</td><td>${u}</td><td class="right">${q}</td>
+    <td class="right perSq">${fmt2(sqft)}</td><td class="right lineSqFt">${fmt2(sqft*q)}</td>
+    <td class="right unitPrice">$0.00</td><td class="right linePrice">$0.00</td>
+    <td class="row-actions"><button class="btn-icon duplicate" title="Duplicate">＋</button><button class="btn-icon delete" title="Delete">✕</button></td>`;
+  tr.querySelector('.delete').addEventListener('click', ()=>{ tr.remove(); recalc(); saveSession(); });
+  tr.querySelector('.duplicate').addEventListener('click', ()=>{ const w = parseFloat(tr.dataset.w), h = parseFloat(tr.dataset.h), u = tr.dataset.u, lbl = tr.dataset.label; addLine(lbl, w, h, u, 1); });
+  tbody.appendChild(tr); recalc(); saveSession();
+}
+
+function init(){
+  if (!localStorage.getItem('dt_room_presets')) setPresets(DEFAULT_PRESETS);
+  document.getElementById('presetInput').value = getPresets().join(',');
+  applyLogo();
+}
 init();
 </script>
 </body>

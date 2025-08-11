@@ -14,13 +14,13 @@
 <style>
   :root{
     --accent:#00E0E8;
-    --accent-strong:#00E0E8;
     --bg:#ffffff;
     --text:#111827;
     --muted:#6b7280;
     --panel:#ffffff;
     --border:#e5e7eb;
     --chip:#f1f5f9;
+    --overlay: rgba(0,0,0,.45);
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -33,7 +33,7 @@
   header p{margin:6px 0 0;color:var(--muted);font-size:12px}
   main{max-width:1100px;margin:0 auto;padding:18px 14px calc(env(safe-area-inset-bottom) + 34px)}
   .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px}
-  .controls{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:10px;align-items:end}
+  .controls{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:10px;align-items:end}
   @media (max-width:1100px){.controls{grid-template-columns:repeat(6,1fr)}}
   @media (max-width:700px){.controls{grid-template-columns:repeat(2,1fr)}}
   .controls label{display:block;font-size:12px;margin-bottom:6px;color:#334155}
@@ -56,7 +56,7 @@
   @media (max-width:820px){.totals{grid-template-columns:1fr 1fr}}
   @media (max-width:520px){.totals{grid-template-columns:1fr}}
   .totals div{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px}
-  .totals h3{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:500}
+  .totals h3{margin:0 0 6px;font-size:13px;color:#647448b7b;font-weight:500} /* safe color literal */
   .totals p{margin:0;font-size:20px;font-weight:800}
   .hr{height:1px;background:var(--border);margin:12px 0}
   .summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;align-items:end;margin-top:12px}
@@ -72,10 +72,19 @@
   .settings header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border)}
   .settings header h3{margin:0;font-size:14px}
   .settings .content{display:none;padding:12px;gap:12px;background:#fff}
-  .settings .row{display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:center;margin-bottom:10px}
+  .settings .row{display:grid;grid-template-columns:200px 1fr;gap:12px;align-items:center;margin-bottom:10px}
   @media (max-width:560px){.settings .row{grid-template-columns:1fr}}
   .note{color:var(--muted);font-size:12px;margin-top:6px}
-  .presets{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px}
+
+  /* Modal (Job Manager) */
+  .modal-overlay{position:fixed;inset:0;background:var(--overlay);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;max-width:860px;width:94%;max-height:80vh;overflow:auto}
+  .modal h3{margin:0 0 10px;font-size:16px}
+  .modal .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+  .modal input[type="text"]{padding:10px;border:1px solid var(--border);border-radius:10px;min-width:200px}
+  .modal .row{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;border-bottom:1px solid var(--border);padding:8px 0}
+  .pill{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:4px 8px;background:var(--chip)}
+  .modal .actions button{margin-left:6px}
 </style>
 </head>
 <body>
@@ -85,9 +94,12 @@
         <img id="brandLogo" class="logo" src="logo-light.png" alt="Dynamic Tintz logo">
         <h1>Dynamic Tintz — Square Footage & Pricing</h1>
       </div>
-      <button id="toggleSettings" class="settings-toggle">⚙️ Settings</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="customer" type="text" placeholder="Customer / Job name" style="padding:10px;border:1px solid var(--border);border-radius:10px;min-width:220px">
+        <button id="toggleSettings" class="settings-toggle">⚙️ Settings</button>
+      </div>
     </div>
-    <p>Estimator with tiered pricing, savings display, local save/restore, and rapid duplicate entry.</p>
+    <p>Estimator with tiered pricing, savings display, local save/restore, rapid duplicate entry, and job manager.</p>
   </header>
 
   <main>
@@ -95,7 +107,7 @@
       <div class="controls">
         <div>
           <label for="label">Label / Room</label>
-          <input id="label" type="text" list="roomList" placeholder="e.g., Kitchen">
+          <input id="label" type="text" list="roomList" placeholder="e.g., Conference Room">
           <datalist id="roomList"></datalist>
         </div>
         <div>
@@ -132,6 +144,14 @@
         <div>
           <label>&nbsp;</label>
           <button id="exportCsv">Export CSV</button>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="saveJob" class="primary">Save Job</button>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="loadJob">Load Job</button>
         </div>
       </div>
 
@@ -227,13 +247,13 @@
         <div class="content" id="settingsContent">
           <div class="row">
             <div>Room Presets (comma-separated)</div>
-            <div><input id="presetInput" class="presets" type="text" placeholder="Kitchen,Bathroom,Bedroom,Living Room,Dining Room,Office"></div>
+            <div><input id="presetInput" class="presets" type="text"></div>
           </div>
           <div class="row">
             <div></div>
             <div>
               <button id="savePresets" class="primary">Save Presets</button>
-              <span class="note">These suggestions appear in the Label field and are saved on this device.</span>
+              <span class="note">Saved locally on this device.</span>
             </div>
           </div>
         </div>
@@ -241,6 +261,25 @@
 
     </div>
   </main>
+
+  <!-- Job Manager Modal -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal">
+      <h3>Saved Jobs</h3>
+      <div class="toolbar">
+        <input id="searchJobs" type="text" placeholder="Search by customer or label">
+        <button id="exportJobs">Export JSON</button>
+        <label class="btn" style="border:1px solid var(--border);padding:10px;border-radius:10px;cursor:pointer">
+          Import JSON
+          <input id="importJobs" type="file" accept="application/json" style="display:none">
+        </label>
+      </div>
+      <div id="jobsContainer"></div>
+      <div style="text-align:right;margin-top:8px">
+        <button id="closeModal">Close</button>
+      </div>
+    </div>
+  </div>
 
 <script>
 if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
@@ -252,6 +291,9 @@ const tbody = $('#grid tbody');
 function toSqFt(w, h, units){ const wf = units==='in'? w/12 : w; const hf = units==='in'? h/12 : h; return wf*hf; }
 function fmt2(n){ return (Math.round(n*100)/100).toFixed(2); }
 function money(n){ return '$' + fmt2(n); }
+function uid(){ return 'j_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36); }
+function nowISO(){ return new Date().toISOString(); }
+function shortDate(iso){ const d = new Date(iso); return d.toLocaleString(); }
 
 // ---------- Pricing ----------
 function unitPrice(totalSqft){
@@ -264,7 +306,11 @@ function unitPrice(totalSqft){
 }
 
 // ---------- Presets ----------
-const DEFAULT_PRESETS = ["Kitchen","Bathroom","Bedroom","Living Room","Dining Room","Office"];
+const DEFAULT_PRESETS = [
+  "Kitchen","Bathroom","Bedroom","Living Room","Dining Room","Office","Kids Room","Baby Room","Guest Room","Sunroom","Garage","Entry","Patio",
+  "Conference Room","Reception","Front Lobby","Waiting Area","Cash Wrap","Point of Sale","Server Room","Break Room","Manager Office","Training Room",
+  "Showroom","Glass Partition","Storefront","Warehouse Office","Customer Service"
+];
 function getPresets(){
   const raw = localStorage.getItem('dt_room_presets');
   if (!raw) return DEFAULT_PRESETS.slice();
@@ -274,19 +320,15 @@ function getPresets(){
     return DEFAULT_PRESETS.slice();
   } catch { return DEFAULT_PRESETS.slice(); }
 }
-function setPresets(arr){
-  localStorage.setItem('dt_room_presets', JSON.stringify(arr));
-}
+function setPresets(arr){ localStorage.setItem('dt_room_presets', JSON.stringify(arr)); }
 function refreshDatalist(){
   const data = getPresets();
   const dl = document.getElementById('roomList');
   dl.innerHTML = '';
-  data.forEach(v => {
-    const opt = document.createElement('option'); opt.value = v; dl.appendChild(opt);
-  });
+  data.forEach(v => { const opt = document.createElement('option'); opt.value = v; dl.appendChild(opt); });
 }
 
-// ---------- Persistence ----------
+// ---------- Current working session ----------
 function serialize(){
   const rows = [...tbody.querySelectorAll('tr')].map(tr => ({ 
     label: tr.dataset.label || '',
@@ -295,13 +337,19 @@ function serialize(){
     u: tr.dataset.u, 
     q: parseInt(tr.dataset.q,10) 
   }));
-  return { rows, baselineRate: parseFloat($('#baselineRate').value) || 12, logoMode: $('#logoMode').value };
+  return { 
+    customer: ($('#customer').value || '').trim(),
+    rows, 
+    baselineRate: parseFloat($('#baselineRate').value) || 12, 
+    logoMode: $('#logoMode').value 
+  };
 }
 function saveSession(){ localStorage.setItem('dt_estimator', JSON.stringify(serialize())); }
 function loadSession(){
   const raw = localStorage.getItem('dt_estimator'); if(!raw) return;
   try {
     const data = JSON.parse(raw);
+    if (data.customer) $('#customer').value = data.customer;
     tbody.innerHTML = '';
     (data.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q));
     if (data.baselineRate) $('#baselineRate').value = data.baselineRate;
@@ -309,7 +357,132 @@ function loadSession(){
   } catch(e){ console.warn('Failed to load session', e); }
 }
 
-// ---------- Logo switching ----------
+// ---------- Jobs (multi-save) ----------
+function getJobs(){ const raw = localStorage.getItem('dt_jobs'); if (!raw) return []; try{ const arr=JSON.parse(raw); return Array.isArray(arr)?arr:[]; }catch{ return []; } }
+function setJobs(arr){ localStorage.setItem('dt_jobs', JSON.stringify(arr)); }
+function quickMeta(){
+  const rows = [...tbody.querySelectorAll('tr')];
+  let sqft=0, units=0, total=0;
+  rows.forEach(tr=>{ 
+    const w=parseFloat(tr.dataset.w), h=parseFloat(tr.dataset.h), u=tr.dataset.u, q=parseInt(tr.dataset.q,10);
+    const wf = u==='in'? w/12:w, hf=u==='in'? h/12:h; const s = wf*hf; 
+    sqft += s*q; units += q;
+    const per = parseFloat((tr.querySelector('.unitPrice').textContent||'$0').replace('$',''))||0;
+    total += per*s*q;
+  });
+  return {sqft, units, total};
+}
+function saveJob(){
+  const data = serialize();
+  const id = uid();
+  const meta = quickMeta();
+  const job = Object.assign({}, data, { id, createdAt: nowISO(), meta });
+  const jobs = getJobs();
+  jobs.unshift(job);
+  setJobs(jobs);
+  alert('Job saved locally.');
+}
+function loadJobById(id){
+  const jobs = getJobs();
+  const job = jobs.find(j => j.id === id);
+  if (!job) return;
+  $('#customer').value = job.customer || '';
+  tbody.innerHTML = '';
+  (job.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q));
+  $('#baselineRate').value = job.baselineRate || 12;
+  $('#logoMode').value = job.logoMode || 'auto';
+  recalc(); saveSession();
+}
+function deleteJobById(id){ setJobs(getJobs().filter(j => j.id !== id)); }
+
+// Export/Import (Library)
+function exportJobs(){
+  const jobs = getJobs();
+  const blob = new Blob([JSON.stringify(jobs, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'dynamic_tintz_jobs.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+function importJobs(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try {
+      const incoming = JSON.parse(e.target.result);
+      if (!Array.isArray(incoming)) throw new Error('Invalid format');
+      const existing = getJobs();
+      const map = new Map(existing.map(j=>[j.id, j]));
+      incoming.forEach(j=>{ if(!map.has(j.id)) map.set(j.id, j); });
+      const merged = Array.from(map.values()).sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
+      setJobs(merged);
+      renderJobs();
+      alert('Jobs imported.');
+    } catch(err) { alert('Import failed: '+ err.message); }
+  };
+  reader.readAsText(file);
+}
+
+// Export Single Job
+function exportJobById(id){
+  const jobs = getJobs();
+  const job = jobs.find(j => j.id === id);
+  if (!job) { alert('Job not found.'); return; }
+  const safeName = (job.customer || 'Untitled Job').replace(/[^a-z0-9\-\_\s]/gi,'').replace(/\s+/g,'_');
+  const blob = new Blob([JSON.stringify(job, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = safeName + '.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Modal UI
+const modalOverlay = document.getElementById('modalOverlay');
+function openModal(){ modalOverlay.style.display = 'flex'; renderJobs($('#searchJobs').value||''); }
+function closeModal(){ modalOverlay.style.display = 'none'; }
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('loadJob').addEventListener('click', openModal);
+document.getElementById('saveJob').addEventListener('click', saveJob);
+
+function renderJobs(filter=''){
+  const container = document.getElementById('jobsContainer');
+  const jobs = getJobs();
+  if (!jobs.length) { container.innerHTML = '<p class="note">No jobs saved yet.</p>'; return; }
+  const q = filter.trim().toLowerCase();
+  const filtered = !q ? jobs : jobs.filter(j => {
+    const c = (j.customer||'').toLowerCase();
+    const labels = (j.rows||[]).map(r=>(r.label||'').toLowerCase()).join(' ');
+    return c.includes(q) || labels.includes(q);
+  });
+  if (!filtered.length) { container.innerHTML = '<p class="note">No matches.</p>'; return; }
+  container.innerHTML = '';
+  filtered.forEach(job => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `
+      <div>
+        <strong>${job.customer || 'Untitled Job'}</strong>
+        <span class="pill">Saved: ${shortDate(job.createdAt)}</span>
+        <span class="pill">Sqft: ${fmt2(job.meta?.sqft || 0)}</span>
+        <span class="pill">Total: $${fmt2(job.meta?.total || 0)}</span>
+      </div>
+      <div class="actions">
+        <button data-id="${job.id}" class="loadBtn">Load</button>
+      </div>
+      <div class="actions">
+        <button data-id="${job.id}" class="exportBtn">Export</button>
+      </div>
+      <div class="actions">
+        <button data-id="${job.id}" class="deleteBtn">Delete</button>
+      </div>`;
+    container.appendChild(row);
+  });
+  container.querySelectorAll('.loadBtn').forEach(btn => btn.addEventListener('click', (e)=>{ loadJobById(e.target.getAttribute('data-id')); closeModal(); }));
+  container.querySelectorAll('.exportBtn').forEach(btn => btn.addEventListener('click', (e)=>{ exportJobById(e.target.getAttribute('data-id')); }));
+  container.querySelectorAll('.deleteBtn').forEach(btn => btn.addEventListener('click', (e)=>{ deleteJobById(e.target.getAttribute('data-id')); renderJobs($('#searchJobs').value||''); }));
+}
+document.getElementById('searchJobs').addEventListener('input', (e)=> renderJobs(e.target.value));
+document.getElementById('exportJobs').addEventListener('click', exportJobs);
+document.getElementById('importJobs').addEventListener('change', (e)=>{ if(e.target.files && e.target.files[0]) importJobs(e.target.files[0]); });
+
+// Logo switching
 const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 function applyLogo(){ 
   const mode = ($('#logoMode').value || 'auto');
@@ -319,7 +492,7 @@ function applyLogo(){
 }
 if (mql) mql.addEventListener('change', applyLogo);
 
-// ---------- UI logic ----------
+// Core table logic
 function addLine(label,w,h,u,q){
   if(!(w>0 && h>0 && q>0)) return;
   const tr = document.createElement('tr');
@@ -396,91 +569,44 @@ function recalc(){
   $('#savingsPct').textContent = fmt2(pct) + '%';
 }
 
-function exportCsv(){
-  let csv = 'Label,Width,Height,Units,Quantity,SqFt per Window,Line SqFt,Unit Price,Line Price\n';
-  [...tbody.querySelectorAll('tr')].forEach(tr => {
-    const lbl = tr.dataset.label || '';
-    const w = tr.dataset.w, h = tr.dataset.h, u = tr.dataset.u, q = tr.dataset.q;
-    const perSq = tr.querySelector('.perSq').textContent;
-    const lineSq = tr.querySelector('.lineSqFt').textContent;
-    const up = tr.querySelector('.unitPrice').textContent;
-    const lp = tr.querySelector('.linePrice').textContent;
-    csv += `${lbl},${w},${h},${u},${q},${perSq},${lineSq},${up},${lp}\n`;
-  });
-  const baseline = parseFloat($('#baselineRate').value) || 12;
-  const { totalSqft } = collectTotals();
-  const currentTotal = parseFloat($('#totalPrice').textContent.replace('$',''));
-  const baselineTotal = baseline * totalSqft;
-  const savings = Math.max(baselineTotal - currentTotal, 0);
-  csv += `,,,,,,,Total,${$('#totalPrice').textContent}\n`;
-  csv += `,,,,,,,Baseline Total,$${fmt2(baselineTotal)}\n`;
-  csv += `,,,,,,,Tier Discount Savings,$${fmt2(savings)}\n`;
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'dynamic_tintz_estimate.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-document.getElementById('add').addEventListener('click', ()=>{ 
-  const label = (document.getElementById('label').value || '').trim();
-  const w = parseFloat(document.getElementById('width').value);
-  const h = parseFloat(document.getElementById('height').value);
-  const u = document.getElementById('units').value;
-  const q = parseInt(document.getElementById('qty').value || '1', 10);
-  addLine(label,w,h,u,q); 
-  document.getElementById('width').focus(); 
-});
-document.getElementById('clear').addEventListener('click', ()=>{ tbody.innerHTML=''; recalc(); saveSession(); });
-document.getElementById('exportCsv').addEventListener('click', exportCsv);
-document.getElementById('baselineRate').addEventListener('change', ()=>{ recalc(); saveSession(); });
-
-// Settings panel collapse
+// Settings panel wiring
 const toggle = document.getElementById('toggleSettings');
 const settings = document.getElementById('settings');
 const settingsContent = document.getElementById('settingsContent');
 let settingsOpen = false;
 toggle.addEventListener('click', ()=>{ settingsOpen = !settingsOpen; settingsContent.style.display = settingsOpen ? 'block' : 'none'; });
 
-// Presets wiring
-function loadPresetsIntoUI(){
-  const data = getPresets();
-  document.getElementById('presetInput').value = data.join(',');
-  refreshDatalist();
-}
 document.getElementById('savePresets').addEventListener('click', ()=>{ 
   const raw = document.getElementById('presetInput').value || '';
   const arr = raw.split(',').map(s => s.trim()).filter(Boolean);
   const unique = Array.from(new Set(arr));
-  setPresets(unique);
-  refreshDatalist();
-  alert('Room presets saved.');
+  setPresets(unique); refreshDatalist(); alert('Room presets saved.');
 });
 
+// Job Manager wiring
+document.getElementById('exportJobs').addEventListener('click', exportJobs);
+document.getElementById('importJobs').addEventListener('change', (e)=>{ if(e.target.files && e.target.files[0]) importJobs(e.target.files[0]); });
+
+const modalOverlay = document.getElementById('modalOverlay');
+function openModal(){ modalOverlay.style.display = 'flex'; renderJobs($('#searchJobs').value||''); }
+function closeModal(){ modalOverlay.style.display = 'none'; }
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('loadJob').addEventListener('click', openModal);
+document.getElementById('saveJob').addEventListener('click', saveJob);
+
 // Logo mode
+const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 document.getElementById('logoMode').addEventListener('change', ()=>{ applyLogo(); saveSession(); });
 if (mql) mql.addEventListener('change', applyLogo);
 
-// Copy summary
-document.getElementById('copySummary').addEventListener('click', ()=>{ 
-  const baseline = parseFloat($('#baselineRate').value) || 12;
-  const { totalSqft } = collectTotals();
-  const currentTotal = parseFloat($('#currentTotal').textContent.replace('$',''));
-  const baselineTotal = baseline * totalSqft;
-  const savings = Math.max(baselineTotal - currentTotal, 0);
-  const pct = baselineTotal > 0 ? (savings / baselineTotal * 100) : 0;
-  const text = `Dynamic Tintz Estimate\nTotal sqft: ${fmt2(totalSqft)} sqft\nEffective rate: ${$('#kpiPrice').textContent}\nCurrent total: ${$('#currentTotal').textContent}\nBaseline ($${fmt2(baseline)}/sqft): $${fmt2(baselineTotal)}\nTier discount savings: $${fmt2(savings)} (${fmt2(pct)}%)`;
-  navigator.clipboard.writeText(text).then(()=>{ alert('Summary copied to clipboard.'); });
-});
-
 // Init
 function init(){
+  if (!localStorage.getItem('dt_room_presets')) setPresets(DEFAULT_PRESETS);
+  document.getElementById('presetInput').value = getPresets().join(',');
+  refreshDatalist();
   loadSession();
   applyLogo();
   recalc();
-  loadPresetsIntoUI();
 }
 init();
 </script>

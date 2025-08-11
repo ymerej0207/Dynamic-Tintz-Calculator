@@ -8,18 +8,16 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="icon-192.png">
-
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#00c4cc">
+<meta name="theme-color" content="#00E0E8">
 
 <style>
   :root{
-    /* Brand palette: robin's egg blue / white / black */
-    --accent:#00c4cc;          /* robin's egg blue */
-    --accent-strong:#00aeb6;   /* darker accent for hover/active */
-    --bg:#ffffff;              /* white */
-    --text:#111827;            /* near-black */
-    --muted:#6b7280;           /* slate */
+    --accent:#00E0E8;
+    --accent-strong:#00E0E8;
+    --bg:#ffffff;
+    --text:#111827;
+    --muted:#6b7280;
     --panel:#ffffff;
     --border:#e5e7eb;
     --chip:#f1f5f9;
@@ -28,8 +26,9 @@
   html,body{height:100%}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
   header{padding:18px 14px calc(env(safe-area-inset-top) + 8px);background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
-  header .top{display:flex;align-items:center;gap:12px}
-  header img.logo{height:34px;width:auto;border-radius:6px;background:#fff;padding:2px;border:1px solid var(--border);display:none}
+  header .top{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}
+  header .brand{display:flex;align-items:center;gap:12px}
+  header img.logo{height:34px;width:auto;border-radius:6px;background:#fff;padding:2px;border:1px solid var(--border)}
   header h1{margin:0;font-size:18px;letter-spacing:.2px}
   header p{margin:6px 0 0;color:var(--muted);font-size:12px}
   main{max-width:1100px;margin:0 auto;padding:18px 14px calc(env(safe-area-inset-bottom) + 34px)}
@@ -38,12 +37,8 @@
   @media (max-width:920px){.controls{grid-template-columns:repeat(4,1fr)}}
   @media (max-width:560px){.controls{grid-template-columns:repeat(2,1fr)}}
   .controls label{display:block;font-size:12px;margin-bottom:6px;color:#334155}
-  .controls input[type="number"], .controls input[type="text"], .controls select{
-    width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--text)
-  }
-  .controls button{
-    padding:12px 14px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:transparent
-  }
+  .controls input[type="number"], .controls select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--text)}
+  .controls button{padding:12px 14px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:transparent}
   .controls button.primary{border-color:var(--accent);background:var(--chip)}
   .controls button:active{transform:translateY(1px)}
   table{width:100%;border-collapse:collapse;margin-top:16px}
@@ -70,139 +65,165 @@
   .kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px}
   .kpi h4{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:600}
   .kpi p{margin:0;font-size:18px;font-weight:800}
-  .highlight{color:var(--accent)}
+
+  /* Settings panel */
+  .settings-toggle{border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
+  .settings{margin-top:14px;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .settings header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border)}
+  .settings header h3{margin:0;font-size:14px}
+  .settings .content{display:none;padding:12px;gap:12px;background:#fff}
+  .settings .row{display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:center}
+  @media (max-width:560px){.settings .row{grid-template-columns:1fr}}
+  .note{color:var(--muted);font-size:12px;margin-top:6px}
 </style>
 </head>
 <body>
-<header>
-  <div class="top">
-    <img id="brandLogo" class="logo" alt="Dynamic Tintz logo">
-    <h1>Dynamic Tintz — Square Footage & Pricing</h1>
-  </div>
-  <p>Lightweight estimator with tiered pricing, savings display, local save/restore, and rapid duplicate entry.</p>
-</header>
-<main>
-  <div class="panel">
-    <div class="controls">
-      <div>
-        <label for="width">Width</label>
-        <input id="width" type="number" step="0.01" inputmode="decimal" min="0" placeholder="e.g., 31">
+  <header>
+    <div class="top">
+      <div class="brand">
+        <img id="brandLogo" class="logo" src="logo-light.png" alt="Dynamic Tintz logo">
+        <h1>Dynamic Tintz — Square Footage & Pricing</h1>
       </div>
-      <div>
-        <label for="height">Height</label>
-        <input id="height" type="number" step="0.01" inputmode="decimal" min="0" placeholder="e.g., 26.5">
-      </div>
-      <div>
-        <label for="units">Units</label>
-        <select id="units">
-          <option value="in" selected>Inches</option>
-          <option value="ft">Feet</option>
-        </select>
-      </div>
-      <div>
-        <label for="qty">Quantity</label>
-        <input id="qty" type="number" step="1" inputmode="numeric" min="1" value="1">
-      </div>
-      <div>
-        <label>&nbsp;</label>
-        <button id="add" class="primary">Add Line</button>
-      </div>
-      <div>
-        <label>&nbsp;</label>
-        <button id="clear">Clear All</button>
-      </div>
-      <div>
-        <label for="brandColor">Accent Color (HEX)</label>
-        <input id="brandColor" type="text" value="#00c4cc">
-      </div>
-      <div>
-        <label for="logoUrl">Logo URL</label>
-        <input id="logoUrl" type="text" value="https://static.wixstatic.com/media/bc78ba_197ed9f6175a4b1fb2ce901f71955b98~mv2.png/v1/fill/w_249,h_142,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20Dynamic%20Tintz.png">
-      </div>
+      <button id="toggleSettings" class="settings-toggle">⚙️ Settings</button>
     </div>
+    <p>Estimator with tiered pricing, savings display, local save/restore, and rapid duplicate entry.</p>
+  </header>
 
-    <div class="actions">
-      <button id="saveSession">Save Session</button>
-      <button id="loadSession">Load Session</button>
-      <button id="exportCsv">Export CSV</button>
-      <span class="badge" id="summaryBadge">0 lines • 0.00 sqft</span>
+  <main>
+    <div class="panel">
+      <div class="controls">
+        <div>
+          <label for="width">Width</label>
+          <input id="width" type="number" step="0.01" inputmode="decimal" min="0" placeholder="e.g., 31">
+        </div>
+        <div>
+          <label for="height">Height</label>
+          <input id="height" type="number" step="0.01" inputmode="decimal" min="0" placeholder="e.g., 26.5">
+        </div>
+        <div>
+          <label for="units">Units</label>
+          <select id="units">
+            <option value="in" selected>Inches</option>
+            <option value="ft">Feet</option>
+          </select>
+        </div>
+        <div>
+          <label for="qty">Quantity</label>
+          <input id="qty" type="number" step="1" inputmode="numeric" min="1" value="1">
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="add" class="primary">Add Line</button>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="clear">Clear All</button>
+        </div>
+        <div>
+          <label for="baselineRate">Baseline $/sqft</label>
+          <input id="baselineRate" type="number" step="0.01" min="0" value="12">
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="exportCsv">Export CSV</button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <span class="badge" id="summaryBadge">0 lines • 0.00 sqft</span>
+      </div>
+
+      <table id="grid" role="table" aria-label="results table">
+        <thead>
+          <tr>
+            <th>Dimensions</th>
+            <th>Units</th>
+            <th class="right">Qty</th>
+            <th class="right">SqFt / Window</th>
+            <th class="right">Line SqFt</th>
+            <th class="right">Unit Price</th>
+            <th class="right">Line Price</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="6" class="right">Total</td>
+            <td id="totalPrice" class="right">$0.00</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="totals">
+        <div class="kpi">
+          <h3>Total Square Footage</h3>
+          <p id="kpiTotal">0.00 sqft</p>
+        </div>
+        <div class="kpi">
+          <h3>Average SqFt / Window</h3>
+          <p id="kpiAvg">0.00 sqft</p>
+        </div>
+        <div class="kpi">
+          <h3>Total Units</h3>
+          <p id="kpiUnits">0</p>
+        </div>
+        <div class="kpi">
+          <h3>Effective Unit Price</h3>
+          <p id="kpiPrice">$0.00 / sqft</p>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="summary">
+        <div class="kpi">
+          <h4>Baseline Total</h4>
+          <p id="baselineTotal">$0.00</p>
+        </div>
+        <div class="kpi">
+          <h4>Current Total</h4>
+          <p id="currentTotal">$0.00</p>
+        </div>
+        <div class="kpi">
+          <h4>Tier Discount Savings</h4>
+          <p id="savings" style="color: var(--accent);">$0.00</p>
+        </div>
+        <div class="kpi">
+          <h4>Savings %</h4>
+          <p id="savingsPct">0.00%</p>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="copySummary" class="primary">Copy Summary</button>
+        </div>
+      </div>
+
+      <p class="note">Pricing: $11/sqft ≤50 sqft, $10/sqft ≤100 sqft, then −$1 per additional 100 sqft, floor = $6.50/sqft (401+ sqft at $6.50). Baseline defaults to $12/sqft for invoice discount display.</p>
+
+      <!-- Collapsible Settings -->
+      <div class="settings" id="settings">
+        <header>
+          <h3>Settings</h3>
+          <div>
+            <label for="logoMode">Logo Mode: </label>
+            <select id="logoMode">
+              <option value="auto" selected>Auto (match device)</option>
+              <option value="light">Light (black/blue)</option>
+              <option value="dark">Dark (white-friendly)</option>
+            </select>
+          </div>
+        </header>
+        <div class="content" id="settingsContent">
+          <div class="row">
+            <div class="note">Your choice is saved on this device. In Auto, we follow your phone’s light/dark mode.</div>
+          </div>
+        </div>
+      </div>
+
     </div>
-
-    <table id="grid" role="table" aria-label="results table">
-      <thead>
-        <tr>
-          <th>Dimensions</th>
-          <th>Units</th>
-          <th class="right">Qty</th>
-          <th class="right">SqFt / Window</th>
-          <th class="right">Line SqFt</th>
-          <th class="right">Unit Price</th>
-          <th class="right">Line Price</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-      <tfoot>
-        <tr>
-          <td colspan="6" class="right">Total</td>
-          <td id="totalPrice" class="right">$0.00</td>
-          <td></td>
-        </tr>
-      </tfoot>
-    </table>
-
-    <div class="totals">
-      <div class="kpi">
-        <h3>Total Square Footage</h3>
-        <p id="kpiTotal">0.00 sqft</p>
-      </div>
-      <div class="kpi">
-        <h3>Average SqFt / Window</h3>
-        <p id="kpiAvg">0.00 sqft</p>
-      </div>
-      <div class="kpi">
-        <h3>Total Units</h3>
-        <p id="kpiUnits">0</p>
-      </div>
-      <div class="kpi">
-        <h3>Effective Unit Price</h3>
-        <p id="kpiPrice">$0.00 / sqft</p>
-      </div>
-    </div>
-
-    <div class="hr"></div>
-
-    <!-- Pricing Summary with Baseline -->
-    <div class="summary">
-      <div>
-        <label for="baselineRate">Baseline Rate ($/sqft)</label>
-        <input id="baselineRate" type="number" step="0.01" min="0" value="12">
-      </div>
-      <div class="kpi">
-        <h4>Baseline Total</h4>
-        <p id="baselineTotal">$0.00</p>
-      </div>
-      <div class="kpi">
-        <h4>Current Total</h4>
-        <p id="currentTotal">$0.00</p>
-      </div>
-      <div class="kpi">
-        <h4>Tier Discount Savings</h4>
-        <p id="savings" class="highlight">$0.00</p>
-      </div>
-      <div class="kpi">
-        <h4>Savings %</h4>
-        <p id="savingsPct">0.0%</p>
-      </div>
-      <div>
-        <label>&nbsp;</label>
-        <button id="copySummary" class="primary">Copy Summary</button>
-      </div>
-    </div>
-
-    <p class="muted" style="margin-top:8px;">Pricing: $11/sqft ≤50 sqft, $10/sqft ≤100 sqft, then −$1 per additional 100 sqft, floor = $6.50/sqft (401+ sqft at $6.50). Baseline defaults to $12/sqft for invoice discount display.</p>
-  </div>
-</main>
+  </main>
 
 <script>
 if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
@@ -224,44 +245,32 @@ function unitPrice(totalSqft){
   return Math.max(price, 6.5);
 }
 
+// Persistence
 function serialize(){
-  const rows = [...tbody.querySelectorAll('tr')].map(tr => ({
-    w: parseFloat(tr.dataset.w),
-    h: parseFloat(tr.dataset.h),
-    u: tr.dataset.u,
-    q: parseInt(tr.dataset.q,10)
-  }));
-  return {
-    rows,
-    brandColor: $('#brandColor').value || '',
-    logoUrl: $('#logoUrl').value || '',
-    baselineRate: parseFloat($('#baselineRate').value) || 12
-  };
+  const rows = [...tbody.querySelectorAll('tr')].map(tr => ({ w: parseFloat(tr.dataset.w), h: parseFloat(tr.dataset.h), u: tr.dataset.u, q: parseInt(tr.dataset.q,10) }));
+  return { rows, baselineRate: parseFloat($('#baselineRate').value) || 12, logoMode: $('#logoMode').value };
 }
-
-function saveSession(){ localStorage.setItem('dt_estimator', JSON.stringify(serialize())); alert('Session saved on this device.'); }
+function saveSession(){ localStorage.setItem('dt_estimator', JSON.stringify(serialize())); }
 function loadSession(){
-  const raw = localStorage.getItem('dt_estimator');
-  if(!raw) return;
+  const raw = localStorage.getItem('dt_estimator'); if(!raw) return;
   const data = JSON.parse(raw);
   tbody.innerHTML = '';
   (data.rows||[]).forEach(r => addLine(r.w, r.h, r.u, r.q));
-  if (data.brandColor) { setAccent(data.brandColor); $('#brandColor').value = data.brandColor; }
-  if (data.logoUrl) { setLogo(data.logoUrl); $('#logoUrl').value = data.logoUrl; }
-  if (data.baselineRate) { $('#baselineRate').value = data.baselineRate; }
-  recalc();
+  if (data.baselineRate) $('#baselineRate').value = data.baselineRate;
+  if (data.logoMode) $('#logoMode').value = data.logoMode;
 }
 
-function setAccent(hex){
-  if(!hex) return;
-  document.documentElement.style.setProperty('--accent', hex);
-  document.documentElement.style.setProperty('--accent-strong', hex);
+// Logo switching
+const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+function applyLogo(){ 
+  const mode = ($('#logoMode').value || 'auto');
+  const isDark = mql && mql.matches;
+  let useDark = (mode === 'auto') ? isDark : (mode === 'dark');
+  $('#brandLogo').src = useDark ? 'logo-dark.png' : 'logo-light.png';
 }
-function setLogo(url){
-  const img = document.getElementById('brandLogo');
-  if(url){ img.src = url; img.style.display='block'; } else { img.style.display='none'; }
-}
+if (mql) mql.addEventListener('change', applyLogo);
 
+// UI logic
 function addLine(w,h,u,q){
   if(!(w>0 && h>0 && q>0)) return;
   const tr = document.createElement('tr');
@@ -280,13 +289,10 @@ function addLine(w,h,u,q){
       <button class="btn-icon delete" title="Delete">✕</button>
     </td>
   `;
-  tr.querySelector('.delete').addEventListener('click', ()=>{ tr.remove(); recalc(); });
-  tr.querySelector('.duplicate').addEventListener('click', ()=>{
-    const w = parseFloat(tr.dataset.w), h = parseFloat(tr.dataset.h), u = tr.dataset.u;
-    addLine(w, h, u, 1);
-  });
+  tr.querySelector('.delete').addEventListener('click', ()=>{ tr.remove(); recalc(); saveSession(); });
+  tr.querySelector('.duplicate').addEventListener('click', ()=>{ const w = parseFloat(tr.dataset.w), h = parseFloat(tr.dataset.h), u = tr.dataset.u; addLine(w, h, u, 1); });
   tbody.appendChild(tr);
-  recalc();
+  recalc(); saveSession();
 }
 
 function collectTotals(){
@@ -304,7 +310,6 @@ function recalc(){
   const { totalSqft, totalUnits } = collectTotals();
   const pricePer = unitPrice(totalSqft);
 
-  // Update each line at the effective unit price
   [...tbody.querySelectorAll('tr')].forEach(tr => {
     const sqft = toSqFt(parseFloat(tr.dataset.w), parseFloat(tr.dataset.h), tr.dataset.u);
     const q = parseInt(tr.dataset.q,10);
@@ -313,25 +318,19 @@ function recalc(){
     tr.querySelector('.linePrice').textContent = money(pricePer * sqft * q);
   });
 
-  // KPIs
   $('#kpiTotal').textContent = fmt2(totalSqft) + ' sqft';
   $('#kpiUnits').textContent = (totalUnits||0).toString();
   const perWindowAvg = totalUnits>0 ? totalSqft/totalUnits : 0;
   $('#kpiAvg').textContent = fmt2(perWindowAvg) + ' sqft';
   $('#kpiPrice').textContent = money(pricePer) + ' / sqft';
 
-  // Summary badge
   const lines = tbody.querySelectorAll('tr').length;
   $('#summaryBadge').textContent = `${lines} ${lines===1?'line':'lines'} • ${fmt2(totalSqft)} sqft`;
 
-  // Footer total price
   let currentTotal = 0;
-  [...tbody.querySelectorAll('.linePrice')].forEach(td => {
-    currentTotal += parseFloat(td.textContent.replace('$',''));
-  });
+  [...tbody.querySelectorAll('.linePrice')].forEach(td => { currentTotal += parseFloat(td.textContent.replace('$','')); });
   $('#totalPrice').textContent = money(currentTotal);
 
-  // Baseline vs Current savings
   const baseline = parseFloat($('#baselineRate').value) || 12;
   const baselineTotal = baseline * totalSqft;
   const savings = Math.max(baselineTotal - currentTotal, 0);
@@ -370,52 +369,38 @@ function exportCsv(){
   URL.revokeObjectURL(url);
 }
 
-function copySummary(){
+document.getElementById('add').addEventListener('click', ()=>{ const w = parseFloat(document.getElementById('width').value); const h = parseFloat(document.getElementById('height').value); const u = document.getElementById('units').value; const q = parseInt(document.getElementById('qty').value || '1', 10); addLine(w,h,u,q); document.getElementById('width').focus(); });
+document.getElementById('clear').addEventListener('click', ()=>{ tbody.innerHTML=''; recalc(); saveSession(); });
+document.getElementById('exportCsv').addEventListener('click', exportCsv);
+document.getElementById('baselineRate').addEventListener('change', ()=>{ recalc(); saveSession(); });
+document.getElementById('logoMode').addEventListener('change', ()=>{ applyLogo(); saveSession(); });
+
+// Settings panel collapse
+const toggle = document.getElementById('toggleSettings');
+const settings = document.getElementById('settings');
+const settingsContent = document.getElementById('settingsContent');
+let settingsOpen = false;
+toggle.addEventListener('click', ()=>{ settingsOpen = !settingsOpen; settingsContent.style.display = settingsOpen ? 'block' : 'none'; });
+
+// Copy summary
+document.getElementById('copySummary').addEventListener('click', ()=>{
   const baseline = parseFloat($('#baselineRate').value) || 12;
   const { totalSqft } = collectTotals();
-  const currentTotal = parseFloat($('#totalPrice').textContent.replace('$',''));
+  const currentTotal = parseFloat($('#currentTotal').textContent.replace('$',''));
   const baselineTotal = baseline * totalSqft;
   const savings = Math.max(baselineTotal - currentTotal, 0);
   const pct = baselineTotal > 0 ? (savings / baselineTotal * 100) : 0;
-  const text = `Dynamic Tintz Estimate
-Total sqft: ${fmt2(totalSqft)} sqft
-Effective rate: ${$('#kpiPrice').textContent}
-Current total: ${$('#currentTotal').textContent}
-Baseline (${money(baseline)}/sqft): ${money(baselineTotal)}
-Tier discount savings: ${money(savings)} (${fmt2(pct)}%)`;
-  navigator.clipboard.writeText(text).then(()=>{
-    alert('Summary copied to clipboard.');
-  });
-}
-
-document.getElementById('add').addEventListener('click', ()=>{
-  const w = parseFloat(document.getElementById('width').value);
-  const h = parseFloat(document.getElementById('height').value);
-  const u = document.getElementById('units').value;
-  const q = parseInt(document.getElementById('qty').value || '1', 10);
-  addLine(w,h,u,q);
-  document.getElementById('width').focus();
+  const text = `Dynamic Tintz Estimate\nTotal sqft: ${fmt2(totalSqft)} sqft\nEffective rate: ${$('#kpiPrice').textContent}\nCurrent total: ${$('#currentTotal').textContent}\nBaseline ($${fmt2(baseline)}/sqft): $${fmt2(baselineTotal)}\nTier discount savings: $${fmt2(savings)} (${fmt2(pct)}%)`;
+  navigator.clipboard.writeText(text).then(()=>{ alert('Summary copied to clipboard.'); });
 });
-document.getElementById('clear').addEventListener('click', ()=>{ tbody.innerHTML=''; recalc(); });
-document.getElementById('exportCsv').addEventListener('click', exportCsv);
-document.getElementById('saveSession').addEventListener('click', saveSession);
-document.getElementById('loadSession').addEventListener('click', loadSession);
-document.getElementById('brandColor').addEventListener('change', (e)=> setAccent(e.target.value));
-document.getElementById('logoUrl').addEventListener('change', (e)=> setLogo(e.target.value));
-document.getElementById('baselineRate').addEventListener('change', recalc);
-document.getElementById('copySummary').addEventListener('click', copySummary);
 
-// First-load: apply branding inputs and recalc
-window.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('dt_estimator');
-  if (!saved) {
-    setAccent(document.getElementById('brandColor').value);
-    setLogo(document.getElementById('logoUrl').value);
-  } else {
-    loadSession();
-  }
+// Init
+function init(){
+  loadSession();
+  applyLogo();
   recalc();
-});
+}
+init();
 </script>
 </body>
 </html>

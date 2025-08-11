@@ -33,11 +33,11 @@
   header p{margin:6px 0 0;color:var(--muted);font-size:12px}
   main{max-width:1100px;margin:0 auto;padding:18px 14px calc(env(safe-area-inset-bottom) + 34px)}
   .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px}
-  .controls{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px;align-items:end}
-  @media (max-width:920px){.controls{grid-template-columns:repeat(4,1fr)}}
-  @media (max-width:560px){.controls{grid-template-columns:repeat(2,1fr)}}
+  .controls{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:10px;align-items:end}
+  @media (max-width:1100px){.controls{grid-template-columns:repeat(6,1fr)}}
+  @media (max-width:700px){.controls{grid-template-columns:repeat(2,1fr)}}
   .controls label{display:block;font-size:12px;margin-bottom:6px;color:#334155}
-  .controls input[type="number"], .controls select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--text)}
+  .controls input[type="number"], .controls select, .controls input[type="text"]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--text)}
   .controls button{padding:12px 14px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:transparent}
   .controls button.primary{border-color:var(--accent);background:var(--chip)}
   .controls button:active{transform:translateY(1px)}
@@ -63,7 +63,7 @@
   @media (max-width:920px){.summary{grid-template-columns:repeat(3,1fr)}}
   @media (max-width:520px){.summary{grid-template-columns:repeat(2,1fr)}}
   .kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px}
-  .kpi h4{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:600}
+  .kpi h4{margin:0 0 6px;font-size:13px;color:#64748b;font-weight:600}
   .kpi p{margin:0;font-size:18px;font-weight:800}
 
   /* Settings panel */
@@ -72,9 +72,10 @@
   .settings header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border)}
   .settings header h3{margin:0;font-size:14px}
   .settings .content{display:none;padding:12px;gap:12px;background:#fff}
-  .settings .row{display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:center}
+  .settings .row{display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:center;margin-bottom:10px}
   @media (max-width:560px){.settings .row{grid-template-columns:1fr}}
   .note{color:var(--muted);font-size:12px;margin-top:6px}
+  .presets{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px}
 </style>
 </head>
 <body>
@@ -92,6 +93,11 @@
   <main>
     <div class="panel">
       <div class="controls">
+        <div>
+          <label for="label">Label / Room</label>
+          <input id="label" type="text" list="roomList" placeholder="e.g., Kitchen">
+          <datalist id="roomList"></datalist>
+        </div>
         <div>
           <label for="width">Width</label>
           <input id="width" type="number" step="0.01" inputmode="decimal" min="0" placeholder="e.g., 31">
@@ -136,6 +142,7 @@
       <table id="grid" role="table" aria-label="results table">
         <thead>
           <tr>
+            <th>Label</th>
             <th>Dimensions</th>
             <th>Units</th>
             <th class="right">Qty</th>
@@ -149,7 +156,7 @@
         <tbody></tbody>
         <tfoot>
           <tr>
-            <td colspan="6" class="right">Total</td>
+            <td colspan="7" class="right">Total</td>
             <td id="totalPrice" class="right">$0.00</td>
             <td></td>
           </tr>
@@ -206,18 +213,28 @@
       <div class="settings" id="settings">
         <header>
           <h3>Settings</h3>
-          <div>
-            <label for="logoMode">Logo Mode: </label>
-            <select id="logoMode">
-              <option value="auto" selected>Auto (match device)</option>
-              <option value="light">Light (black/blue)</option>
-              <option value="dark">Dark (white-friendly)</option>
-            </select>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <div>
+              <label for="logoMode">Logo Mode: </label>
+              <select id="logoMode">
+                <option value="auto" selected>Auto (match device)</option>
+                <option value="light">Light (black/blue)</option>
+                <option value="dark">Dark (white-friendly)</option>
+              </select>
+            </div>
           </div>
         </header>
         <div class="content" id="settingsContent">
           <div class="row">
-            <div class="note">Your choice is saved on this device. In Auto, we follow your phone’s light/dark mode.</div>
+            <div>Room Presets (comma-separated)</div>
+            <div><input id="presetInput" class="presets" type="text" placeholder="Kitchen,Bathroom,Bedroom,Living Room,Dining Room,Office"></div>
+          </div>
+          <div class="row">
+            <div></div>
+            <div>
+              <button id="savePresets" class="primary">Save Presets</button>
+              <span class="note">These suggestions appear in the Label field and are saved on this device.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -231,11 +248,12 @@ if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js');
 const $ = sel => document.querySelector(sel);
 const tbody = $('#grid tbody');
 
+// ---------- Helpers ----------
 function toSqFt(w, h, units){ const wf = units==='in'? w/12 : w; const hf = units==='in'? h/12 : h; return wf*hf; }
 function fmt2(n){ return (Math.round(n*100)/100).toFixed(2); }
 function money(n){ return '$' + fmt2(n); }
 
-// Pricing with $6.50 cap
+// ---------- Pricing ----------
 function unitPrice(totalSqft){
   if (totalSqft <= 50) return 11;
   if (totalSqft <= 100) return 10;
@@ -245,22 +263,53 @@ function unitPrice(totalSqft){
   return Math.max(price, 6.5);
 }
 
-// Persistence
+// ---------- Presets ----------
+const DEFAULT_PRESETS = ["Kitchen","Bathroom","Bedroom","Living Room","Dining Room","Office"];
+function getPresets(){
+  const raw = localStorage.getItem('dt_room_presets');
+  if (!raw) return DEFAULT_PRESETS.slice();
+  try { 
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr) && arr.length) return arr;
+    return DEFAULT_PRESETS.slice();
+  } catch { return DEFAULT_PRESETS.slice(); }
+}
+function setPresets(arr){
+  localStorage.setItem('dt_room_presets', JSON.stringify(arr));
+}
+function refreshDatalist(){
+  const data = getPresets();
+  const dl = document.getElementById('roomList');
+  dl.innerHTML = '';
+  data.forEach(v => {
+    const opt = document.createElement('option'); opt.value = v; dl.appendChild(opt);
+  });
+}
+
+// ---------- Persistence ----------
 function serialize(){
-  const rows = [...tbody.querySelectorAll('tr')].map(tr => ({ w: parseFloat(tr.dataset.w), h: parseFloat(tr.dataset.h), u: tr.dataset.u, q: parseInt(tr.dataset.q,10) }));
+  const rows = [...tbody.querySelectorAll('tr')].map(tr => ({ 
+    label: tr.dataset.label || '',
+    w: parseFloat(tr.dataset.w), 
+    h: parseFloat(tr.dataset.h), 
+    u: tr.dataset.u, 
+    q: parseInt(tr.dataset.q,10) 
+  }));
   return { rows, baselineRate: parseFloat($('#baselineRate').value) || 12, logoMode: $('#logoMode').value };
 }
 function saveSession(){ localStorage.setItem('dt_estimator', JSON.stringify(serialize())); }
 function loadSession(){
   const raw = localStorage.getItem('dt_estimator'); if(!raw) return;
-  const data = JSON.parse(raw);
-  tbody.innerHTML = '';
-  (data.rows||[]).forEach(r => addLine(r.w, r.h, r.u, r.q));
-  if (data.baselineRate) $('#baselineRate').value = data.baselineRate;
-  if (data.logoMode) $('#logoMode').value = data.logoMode;
+  try {
+    const data = JSON.parse(raw);
+    tbody.innerHTML = '';
+    (data.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q));
+    if (data.baselineRate) $('#baselineRate').value = data.baselineRate;
+    if (data.logoMode) $('#logoMode').value = data.logoMode;
+  } catch(e){ console.warn('Failed to load session', e); }
 }
 
-// Logo switching
+// ---------- Logo switching ----------
 const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 function applyLogo(){ 
   const mode = ($('#logoMode').value || 'auto');
@@ -270,13 +319,15 @@ function applyLogo(){
 }
 if (mql) mql.addEventListener('change', applyLogo);
 
-// UI logic
-function addLine(w,h,u,q){
+// ---------- UI logic ----------
+function addLine(label,w,h,u,q){
   if(!(w>0 && h>0 && q>0)) return;
   const tr = document.createElement('tr');
+  tr.dataset.label = (label||'').trim();
   tr.dataset.w = w; tr.dataset.h = h; tr.dataset.u = u; tr.dataset.q = q;
   const sqft = toSqFt(w,h,u);
   tr.innerHTML = `
+    <td>${tr.dataset.label}</td>
     <td>${w} x ${h}</td>
     <td>${u}</td>
     <td class="right">${q}</td>
@@ -290,7 +341,10 @@ function addLine(w,h,u,q){
     </td>
   `;
   tr.querySelector('.delete').addEventListener('click', ()=>{ tr.remove(); recalc(); saveSession(); });
-  tr.querySelector('.duplicate').addEventListener('click', ()=>{ const w = parseFloat(tr.dataset.w), h = parseFloat(tr.dataset.h), u = tr.dataset.u; addLine(w, h, u, 1); });
+  tr.querySelector('.duplicate').addEventListener('click', ()=>{ 
+    const w = parseFloat(tr.dataset.w), h = parseFloat(tr.dataset.h), u = tr.dataset.u, lbl = tr.dataset.label; 
+    addLine(lbl, w, h, u, 1); 
+  });
   tbody.appendChild(tr);
   recalc(); saveSession();
 }
@@ -343,23 +397,24 @@ function recalc(){
 }
 
 function exportCsv(){
-  let csv = 'Width,Height,Units,Quantity,SqFt per Window,Line SqFt,Unit Price,Line Price\n';
+  let csv = 'Label,Width,Height,Units,Quantity,SqFt per Window,Line SqFt,Unit Price,Line Price\n';
   [...tbody.querySelectorAll('tr')].forEach(tr => {
+    const lbl = tr.dataset.label || '';
     const w = tr.dataset.w, h = tr.dataset.h, u = tr.dataset.u, q = tr.dataset.q;
     const perSq = tr.querySelector('.perSq').textContent;
     const lineSq = tr.querySelector('.lineSqFt').textContent;
     const up = tr.querySelector('.unitPrice').textContent;
     const lp = tr.querySelector('.linePrice').textContent;
-    csv += `${w},${h},${u},${q},${perSq},${lineSq},${up},${lp}\n`;
+    csv += `${lbl},${w},${h},${u},${q},${perSq},${lineSq},${up},${lp}\n`;
   });
   const baseline = parseFloat($('#baselineRate').value) || 12;
   const { totalSqft } = collectTotals();
   const currentTotal = parseFloat($('#totalPrice').textContent.replace('$',''));
   const baselineTotal = baseline * totalSqft;
   const savings = Math.max(baselineTotal - currentTotal, 0);
-  csv += `,,,,,,Total,${$('#totalPrice').textContent}\n`;
-  csv += `,,,,,,Baseline Total,$${fmt2(baselineTotal)}\n`;
-  csv += `,,,,,,Tier Discount Savings,$${fmt2(savings)}\n`;
+  csv += `,,,,,,,Total,${$('#totalPrice').textContent}\n`;
+  csv += `,,,,,,,Baseline Total,$${fmt2(baselineTotal)}\n`;
+  csv += `,,,,,,,Tier Discount Savings,$${fmt2(savings)}\n`;
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -369,11 +424,18 @@ function exportCsv(){
   URL.revokeObjectURL(url);
 }
 
-document.getElementById('add').addEventListener('click', ()=>{ const w = parseFloat(document.getElementById('width').value); const h = parseFloat(document.getElementById('height').value); const u = document.getElementById('units').value; const q = parseInt(document.getElementById('qty').value || '1', 10); addLine(w,h,u,q); document.getElementById('width').focus(); });
+document.getElementById('add').addEventListener('click', ()=>{ 
+  const label = (document.getElementById('label').value || '').trim();
+  const w = parseFloat(document.getElementById('width').value);
+  const h = parseFloat(document.getElementById('height').value);
+  const u = document.getElementById('units').value;
+  const q = parseInt(document.getElementById('qty').value || '1', 10);
+  addLine(label,w,h,u,q); 
+  document.getElementById('width').focus(); 
+});
 document.getElementById('clear').addEventListener('click', ()=>{ tbody.innerHTML=''; recalc(); saveSession(); });
 document.getElementById('exportCsv').addEventListener('click', exportCsv);
 document.getElementById('baselineRate').addEventListener('change', ()=>{ recalc(); saveSession(); });
-document.getElementById('logoMode').addEventListener('change', ()=>{ applyLogo(); saveSession(); });
 
 // Settings panel collapse
 const toggle = document.getElementById('toggleSettings');
@@ -382,8 +444,27 @@ const settingsContent = document.getElementById('settingsContent');
 let settingsOpen = false;
 toggle.addEventListener('click', ()=>{ settingsOpen = !settingsOpen; settingsContent.style.display = settingsOpen ? 'block' : 'none'; });
 
+// Presets wiring
+function loadPresetsIntoUI(){
+  const data = getPresets();
+  document.getElementById('presetInput').value = data.join(',');
+  refreshDatalist();
+}
+document.getElementById('savePresets').addEventListener('click', ()=>{ 
+  const raw = document.getElementById('presetInput').value || '';
+  const arr = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const unique = Array.from(new Set(arr));
+  setPresets(unique);
+  refreshDatalist();
+  alert('Room presets saved.');
+});
+
+// Logo mode
+document.getElementById('logoMode').addEventListener('change', ()=>{ applyLogo(); saveSession(); });
+if (mql) mql.addEventListener('change', applyLogo);
+
 // Copy summary
-document.getElementById('copySummary').addEventListener('click', ()=>{
+document.getElementById('copySummary').addEventListener('click', ()=>{ 
   const baseline = parseFloat($('#baselineRate').value) || 12;
   const { totalSqft } = collectTotals();
   const currentTotal = parseFloat($('#currentTotal').textContent.replace('$',''));
@@ -399,6 +480,7 @@ function init(){
   loadSession();
   applyLogo();
   recalc();
+  loadPresetsIntoUI();
 }
 init();
 </script>

@@ -31,11 +31,16 @@
   th{text-align:right;color:#0f172a;font-weight:700} th:first-child,td:first-child{text-align:left} tfoot td{font-weight:700}
   .right{text-align:right} .row-actions{display:flex;gap:10px;justify-content:flex-end} .btn-icon{cursor:pointer;font-size:18px;padding:0 6px;border-radius:8px;border:1px solid var(--border);background:#fff}
   .btn-icon:hover{border-color:var(--accent)} .actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap} .badge{font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:999px;color:#6b7280;background:#f1f5f9}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .toolbar button{padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer}
   .totals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px} @media (max-width:820px){.totals{grid-template-columns:1fr 1fr}} @media (max-width:520px){.totals{grid-template-columns:1fr}}
   .totals div{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px} .kpi h4, .totals h3{margin:0 0 6px;font-size:13px;color:#64748b;font-weight:600} .kpi p, .totals p{margin:0;font-size:18px;font-weight:800}
   .hr{height:1px;background:var(--border);margin:12px 0} .summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;align-items:end;margin-top:12px}
   @media (max-width:920px){.summary{grid-template-columns:repeat(3,1fr)}} @media (max-width:520px){.summary{grid-template-columns:repeat(2,1fr)}}
-  .pill{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:4px 8px;background:#f1f5f9}
+  .modal-overlay{position:fixed;inset:0;background:var(--overlay);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;max-width:860px;width:94%;max-height:80vh;overflow:auto}
+  .modal h3{margin:0 0 10px;font-size:16px} .modal .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+  .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px} .list button{padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;text-align:left} .list button:hover{border-color:var(--accent)}
   .min-badge{display:inline-block;margin-left:8px;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--accent);color:#0f172a;background:#ecfeff}
 </style>
 </head>
@@ -102,6 +107,12 @@
         </div>
       </div>
 
+      <div class="toolbar">
+        <button id="saveJob">💾 Save Job</button>
+        <button id="loadJob">📂 Load Job</button>
+        <button id="exportCsv">↗️ Export CSV</button>
+      </div>
+
       <div class="actions"><span class="badge" id="summaryBadge">0 lines • 0.00 sqft</span></div>
 
       <table id="grid" role="table" aria-label="results table">
@@ -147,9 +158,12 @@
             <select id="tapFeedback"><option value="on" selected>On</option><option value="off">Off</option></select>
           </div>
         </div></header>
-        <div class="content" id="settingsContent">
-          <div class="row"><div>Room Presets (comma-separated)</div><div><input id="presetInput" class="presets" type="text"></div></div>
-          <div class="row"><div></div><div><button id="savePresets" class="primary">Save Presets</button><span class="note">Saved locally on this device.</span></div></div>
+        <div class="content" id="settingsContent" style="display:none">
+          <div class="row" style="display:flex;gap:10px;align-items:center;margin-top:8px">
+            <div>Room Presets (comma-separated)</div><div style="flex:1"><input id="presetInput" class="presets" type="text" style="width:100%"></div>
+            <div><button id="savePresets" class="primary">Save Presets</button></div>
+          </div>
+          <p class="note">Saved locally on this device.</p>
         </div>
       </div>
 
@@ -183,38 +197,6 @@
   </div>
 
 <script>
-if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
-
-const $ = sel => document.querySelector(sel);
-const tbody = $('#grid tbody');
-
-function toSqFt(w, h, units){ const wf = units==='in'? w/12 : w; const hf = units==='in'? h/12 : h; return wf*hf; }
-function fmt2(n){ return (Math.round(n*100)/100).toFixed(2); }
-function money(n){ return '$' + fmt2(n); }
-function uid(){ return 'j_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36); }
-function nowISO(){ return new Date().toISOString(); }
-function shortDate(iso){ const d = new Date(iso); return d.toLocaleString(); }
-
-function unitPrice(totalSqft){
-  if (totalSqft <= 50) return 11;
-  if (totalSqft <= 100) return 10;
-  const over = totalSqft - 100;
-  const steps = Math.ceil(over / 100);
-  const price = 10 - steps;
-  return Math.max(price, 6.5);
-}
-
-// Haversine + ZIP geocode
-function haversineMiles(lat1, lon1, lat2, lon2){
-  const toRad = d => d*Math.PI/180;
-  const R = 3958.7613;
-  const dLat = toRad(lat2-lat1), dLon = toRad(lat2-lon1); // corrected below in code
-  return R;
-}
-
-</body>
-</html>
-
 if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
 
 const $ = sel => document.querySelector(sel);
@@ -328,30 +310,42 @@ function quickMeta(){
   if (sqft>0 && sqft<=18){ total = Math.max(total, lastDist>50?350:250); }
   return {sqft, units, total};
 }
-function saveJob(){ const data = serialize(); const id = uid(); const meta = quickMeta(); const job = Object.assign({}, data, { id, createdAt: nowISO(), meta }); const jobs = getJobs(); jobs.unshift(job); setJobs(jobs); alert('Job saved locally.'); }
-function loadJobById(id){ const jobs = getJobs(); const job = jobs.find(j => j.id === id); if (!job) return; $('#customer').value = job.customer || ''; tbody.innerHTML = ''; (job.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q)); $('#baselineRate').value = job.baselineRate || 12; $('#logoMode').value = job.logoMode || 'auto'; if (job.tapFeedback) setHaptic(job.tapFeedback); if (job.originZip) $('#originZip').value = job.originZip; if (job.customerZip) $('#customerZip').value = job.customerZip; recalc(); saveSession(); }
+function saveJob(){
+  const data = serialize(); const id = uid(); const meta = quickMeta();
+  const job = Object.assign({}, data, { id, createdAt: nowISO(), meta });
+  const jobs = getJobs(); jobs.unshift(job); setJobs(jobs); alert('Job saved locally.');
+}
+function loadJobById(id){ const jobs = getJobs(); const job = jobs.find(j => j.id === id); if (!job) return;
+  $('#customer').value = job.customer || '';
+  tbody.innerHTML = ''; (job.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q));
+  $('#baselineRate').value = job.baselineRate || 12; $('#logoMode').value = job.logoMode || 'auto';
+  if (job.tapFeedback) setHaptic(job.tapFeedback);
+  if (job.originZip) $('#originZip').value = job.originZip;
+  if (job.customerZip) $('#customerZip').value = job.customerZip;
+  if (job.distanceMi){ localStorage.setItem('dt_last_distance_mi', String(job.distanceMi)); $('#distanceBadge').textContent = parseFloat(job.distanceMi).toFixed(1) + ' mi'; }
+  recalc(); saveSession();
+}
 function deleteJobById(id){ setJobs(getJobs().filter(j => j.id !== id)); }
-function exportJobs(){ const jobs = getJobs(); const blob = new Blob([JSON.stringify(jobs, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'dynamic_tintz_jobs.json'; a.click(); URL.revokeObjectURL(url); }
-function importJobs(file){ const reader = new FileReader(); reader.onload = (e)=>{ try { const incoming = JSON.parse(e.target.result); if (!Array.isArray(incoming)) throw new Error('Invalid format'); const existing = getJobs(); const map = new Map(existing.map(j=>[j.id, j])); incoming.forEach(j=>{ if(!map.has(j.id)) map.set(j.id, j); }); const merged = Array.from(map.values()).sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||'')); setJobs(merged); renderJobs(); alert('Jobs imported.'); } catch(e){ alert('Import failed.'); } }; reader.readAsText(file); }
+function exportJobs(){
+  const jobs = getJobs(); const blob = new Blob([JSON.stringify(jobs, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'dynamic_tintz_jobs.json'; a.click(); URL.revokeObjectURL(url);
+}
+function importJobs(file){ const reader = new FileReader(); reader.onload = (e)=>{ try { const incoming = JSON.parse(e.target.result); if (!Array.isArray(incoming)) throw new Error('Invalid format'); const existing = getJobs(); const map = new Map(existing.map(j=>[j.id, j])); incoming.forEach(j=>{ if(!map.has(j.id)) map.set(j.id, j); }); const merged = Array.from(map.values()).sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||'')); setJobs(merged); renderJobs(); alert('Jobs imported.'); } catch(err){ alert('Import failed.'); } }; reader.readAsText(file); }
 function exportJobById(id){ const jobs = getJobs(); const job = jobs.find(j => j.id === id); if (!job) { alert('Job not found.'); return; } const safeName = (job.customer || 'Untitled Job').replace(/[^a-z0-9\-\_\s]/gi,'').replace(/\s+/g,'_'); const blob = new Blob([JSON.stringify(job, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = safeName + '.json'; a.click(); URL.revokeObjectURL(url); }
 
 // Modal wiring
 const modalOverlay = document.getElementById('modalOverlay');
 function openModal(){ modalOverlay.style.display = 'flex'; renderJobs($('#searchJobs').value||''); }
 function closeModal(){ modalOverlay.style.display = 'none'; }
-document.getElementById('closeModal').addEventListener('click', closeModal);
-document.getElementById('loadJob').addEventListener('click', openModal);
-document.getElementById('saveJob').addEventListener('click', saveJob);
-function renderJobs(filter=''){
-  const container = document.getElementById('jobsContainer'); const jobs = getJobs();
-  if (!jobs.length){ container.innerHTML = '<p class="note">No jobs saved yet.</p>'; return; }
+const closeModalBtn = document.getElementById('closeModal'); if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+const loadJobBtn = document.getElementById('loadJob'); if (loadJobBtn) loadJobBtn.addEventListener('click', openModal);
+const saveJobBtn = document.getElementById('saveJob'); if (saveJobBtn) saveJobBtn.addEventListener('click', saveJob);
+
+function renderJobs(filter=''){ const container = document.getElementById('jobsContainer'); const jobs = getJobs(); if (!container) return;
+  if (!jobs.length) { container.innerHTML = '<p class="note">No jobs saved yet.</p>'; return; }
   const q = (filter||'').trim().toLowerCase();
-  const filtered = !q ? jobs : jobs.filter(j => {
-    const c = (j.customer||'').toLowerCase();
-    const labels = (j.rows||[]).map(r=>(r.label||'').toLowerCase()).join(' ');
-    return c.includes(q) || labels.includes(q);
-  });
-  if (!filtered.length){ container.innerHTML = '<p class="note">No matches.</p>'; return; }
+  const filtered = !q ? jobs : jobs.filter(j => { const c = (j.customer||'').toLowerCase(); const labels = (j.rows||[]).map(r=>(r.label||'').toLowerCase()).join(' '); return c.includes(q) || labels.includes(q); });
+  if (!filtered.length) { container.innerHTML = '<p class="note">No matches.</p>'; return; }
   container.innerHTML = '';
   filtered.forEach(job => {
     const row = document.createElement('div');
@@ -371,24 +365,19 @@ function renderJobs(filter=''){
   container.querySelectorAll('.exportBtn').forEach(btn => btn.addEventListener('click', (e)=>{ exportJobById(e.target.getAttribute('data-id')); }));
   container.querySelectorAll('.deleteBtn').forEach(btn => btn.addEventListener('click', (e)=>{ deleteJobById(e.target.getAttribute('data-id')); renderJobs($('#searchJobs').value||''); }));
 }
-document.getElementById('searchJobs').addEventListener('input', (e)=> renderJobs(e.target.value));
-document.getElementById('exportJobs').addEventListener('click', exportJobs);
-document.getElementById('importJobs').addEventListener('change', (e)=>{ if(e.target.files && e.target.files[0]) importJobs(e.target.files[0]); });
+const searchJobsEl = document.getElementById('searchJobs'); if (searchJobsEl) searchJobsEl.addEventListener('input', (e)=> renderJobs(e.target.value));
+const exportJobsBtn = document.getElementById('exportJobs'); if (exportJobsBtn) exportJobsBtn.addEventListener('click', exportJobs);
+const importJobsEl = document.getElementById('importJobs'); if (importJobsEl) importJobsEl.addEventListener('change', (e)=>{ if(e.target.files && e.target.files[0]) importJobs(e.target.files[0]); });
 
 // Label presets modal
 const labelOverlay = document.getElementById('labelOverlay');
 const labelList = document.getElementById('labelList');
 function openLabelPicker(){ labelOverlay.style.display='flex'; renderLabelList($('#searchLabels').value||''); }
 function closeLabelPicker(){ labelOverlay.style.display='none'; }
-document.getElementById('chooseLabel').addEventListener('click', openLabelPicker);
-document.getElementById('closeLabel').addEventListener('click', closeLabelPicker);
-document.getElementById('searchLabels').addEventListener('input', (e)=> renderLabelList(e.target.value));
-function renderLabelList(q=''){
-  const data = getPresets(); const query = q.trim().toLowerCase();
-  const filtered = !query ? data : data.filter(x => x.toLowerCase().includes(query));
-  labelList.innerHTML = '';
-  filtered.forEach(lbl => { const b = document.createElement('button'); b.textContent = lbl; b.addEventListener('click', ()=>{ document.getElementById('label').value = lbl; closeLabelPicker(); }); labelList.appendChild(b); });
-}
+const chooseLabelBtn = document.getElementById('chooseLabel'); if (chooseLabelBtn) chooseLabelBtn.addEventListener('click', openLabelPicker);
+const closeLabelBtn = document.getElementById('closeLabel'); if (closeLabelBtn) closeLabelBtn.addEventListener('click', closeLabelPicker);
+const searchLabelsEl = document.getElementById('searchLabels'); if (searchLabelsEl) searchLabelsEl.addEventListener('input', (e)=> renderLabelList(e.target.value));
+function renderLabelList(q=''){ const data = getPresets(); const query = q.trim().toLowerCase(); const filtered = !query ? data : data.filter(x => x.toLowerCase().includes(query)); if (!labelList) return; labelList.innerHTML = ''; filtered.forEach(lbl => { const b = document.createElement('button'); b.textContent = lbl; b.addEventListener('click', ()=>{ document.getElementById('label').value = lbl; closeLabelPicker(); }); labelList.appendChild(b); }); }
 
 // Core table logic
 function addLine(label,w,h,u,q){
@@ -460,7 +449,6 @@ function recalc(){
   const beforeFloor = currentTotal;
   if (minFloor > 0 && currentTotal < minFloor){ currentTotal = minFloor; }
 
-  // Toggle badge if minimum changed the total
   if (minFloor > 0 && currentTotal > beforeFloor){
     minBadge.style.display = 'inline-block';
     minBadge.textContent = `Minimum applied (${money(minFloor)})`;
@@ -510,8 +498,9 @@ document.getElementById('add').addEventListener('click', ()=>{
 document.getElementById('clear').addEventListener('click', ()=>{ tbody.innerHTML=''; recalc(); saveSession(); });
 document.getElementById('calcDistance').addEventListener('click', async ()=>{ await calcDistanceMiles(); recalc(); saveSession(); });
 
-document.getElementById('exportCsv').addEventListener('click', ()=>{
-  let csv = 'Customer,Label,Width,Height,Units,Quantity,SqFt per Window,Line SqFt,Unit Price,Line Price\\n';
+const exportCsvBtn = document.getElementById('exportCsv');
+if (exportCsvBtn) exportCsvBtn.addEventListener('click', ()=>{
+  let csv = 'Customer,Label,Width,Height,Units,Quantity,SqFt per Window,Line SqFt,Unit Price,Line Price\n';
   const customer = ($('#customer').value || '').replace(/,/g,'');
   [...tbody.querySelectorAll('tr')].forEach(tr => {
     const lbl = (tr.dataset.label || '').replace(/,/g,'');
@@ -520,7 +509,7 @@ document.getElementById('exportCsv').addEventListener('click', ()=>{
     const lineSq = tr.querySelector('.lineSqFt').textContent;
     const unitPrice = tr.querySelector('.unitPrice').textContent.replace('$','');
     const linePrice = tr.querySelector('.linePrice').textContent.replace('$','');
-    csv += [customer,lbl,w,h,u,q,perSq,lineSq,unitPrice,linePrice].join(',') + '\\n';
+    csv += [customer,lbl,w,h,u,q,perSq,lineSq,unitPrice,linePrice].join(',') + '\n';
   });
   const blob = new Blob([csv], {type:'text/csv'});
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'dynamic_tintz_lines.csv'; a.click(); URL.revokeObjectURL(url);
@@ -548,20 +537,20 @@ Minimum policy: ${minText || '—'}`;
 
 // Settings
 const toggle = document.getElementById('toggleSettings'); const settingsContent = document.getElementById('settingsContent'); let settingsOpen = false;
-toggle.addEventListener('click', ()=>{ settingsOpen = !settingsOpen; settingsContent.style.display = settingsOpen ? 'block' : 'none'; });
-document.getElementById('savePresets').addEventListener('click', ()=>{ const raw = document.getElementById('presetInput').value || ''; const arr = raw.split(',').map(s => s.trim()).filter(Boolean); const unique = Array.from(new Set(arr)); setPresets(unique); alert('Room presets saved.'); });
-const tapSel = document.getElementById('tapFeedback'); tapSel.value = (localStorage.getItem('dt_tap_feedback') || 'on'); tapSel.addEventListener('change', (e)=> setHaptic(e.target.value) );
+if (toggle) toggle.addEventListener('click', ()=>{ settingsOpen = !settingsOpen; settingsContent.style.display = settingsOpen ? 'block' : 'none'; });
+const savePresetsBtn = document.getElementById('savePresets'); if (savePresetsBtn) savePresetsBtn.addEventListener('click', ()=>{ const raw = document.getElementById('presetInput').value || ''; const arr = raw.split(',').map(s => s.trim()).filter(Boolean); const unique = Array.from(new Set(arr)); setPresets(unique); alert('Room presets saved.'); });
+const tapSel = document.getElementById('tapFeedback'); if (tapSel) { tapSel.value = (localStorage.getItem('dt_tap_feedback') || 'on'); tapSel.addEventListener('change', (e)=> setHaptic(e.target.value) ); }
 
 // Logo preference
 const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
 function applyLogo(){ const mode = ($('#logoMode').value || 'auto'); const isDark = mql && mql.matches; const useDark = (mode==='auto') ? isDark : (mode==='dark'); $('#brandLogo').src = useDark ? 'logo-dark.png' : 'logo-light.png'; }
-document.getElementById('logoMode').addEventListener('change', ()=>{ applyLogo(); saveSession(); });
+const logoModeSel = document.getElementById('logoMode'); if (logoModeSel) logoModeSel.addEventListener('change', ()=>{ applyLogo(); saveSession(); });
 if (mql) mql.addEventListener('change', applyLogo);
 
 // Init
 function init(){
   if (!localStorage.getItem('dt_room_presets')) setPresets(DEFAULT_PRESETS);
-  document.getElementById('presetInput').value = getPresets().join(',');
+  const presetInput = document.getElementById('presetInput'); if (presetInput) presetInput.value = getPresets().join(',');
   applyLogo();
   loadSession();
   const oz = ($('#originZip').value||'').trim();
@@ -569,7 +558,6 @@ function init(){
   if (oz.length===5 && cz.length===5) { calcDistanceMiles().then(recalc); } else { recalc(); }
 }
 init();
-
 </script>
 </body>
 </html>

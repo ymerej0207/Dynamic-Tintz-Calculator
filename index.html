@@ -18,7 +18,7 @@
   header .top{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}
   header .brand{display:flex;align-items:center;gap:12px}
   header img.logo{height:34px;width:auto;border-radius:6px;background:#fff;padding:2px;border:1px solid var(--border)}
-  header h1{margin:0;font-size:18px} header p{margin:6px 0 0;color:var(--muted);font-size:12px}
+  header h1{margin:0;font-size:18px} header p{margin:6px 0 0;color:#6b7280;font-size:12px}
   main{max-width:1100px;margin:0 auto;padding:18px 14px calc(env(safe-area-inset-bottom) + 34px)}
   .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px}
   .controls{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px;align-items:end}
@@ -30,18 +30,13 @@
   table{width:100%;border-collapse:collapse;margin-top:16px} th,td{padding:12px;border-bottom:1px solid var(--border);text-align:right;font-size:15px}
   th{text-align:right;color:#0f172a;font-weight:700} th:first-child,td:first-child{text-align:left} tfoot td{font-weight:700}
   .right{text-align:right} .row-actions{display:flex;gap:10px;justify-content:flex-end} .btn-icon{cursor:pointer;font-size:18px;padding:0 6px;border-radius:8px;border:1px solid var(--border);background:#fff}
-  .btn-icon:hover{border-color:var(--accent)} .actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap} .badge{font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);background:var(--chip)}
+  .btn-icon:hover{border-color:var(--accent)} .actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap} .badge{font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:999px;color:#6b7280;background:#f1f5f9}
   .totals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px} @media (max-width:820px){.totals{grid-template-columns:1fr 1fr}} @media (max-width:520px){.totals{grid-template-columns:1fr}}
   .totals div{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px} .kpi h4, .totals h3{margin:0 0 6px;font-size:13px;color:#64748b;font-weight:600} .kpi p, .totals p{margin:0;font-size:18px;font-weight:800}
   .hr{height:1px;background:var(--border);margin:12px 0} .summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;align-items:end;margin-top:12px}
   @media (max-width:920px){.summary{grid-template-columns:repeat(3,1fr)}} @media (max-width:520px){.summary{grid-template-columns:repeat(2,1fr)}}
-  /* Modal base */
-  .modal-overlay{position:fixed;inset:0;background:var(--overlay);display:none;align-items:center;justify-content:center;z-index:50}
-  .modal{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;max-width:860px;width:94%;max-height:80vh;overflow:auto}
-  .modal h3{margin:0 0 10px;font-size:16px} .modal .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
-  .modal input[type="text"]{padding:10px;border:1px solid var(--border);border-radius:10px;min-width:200px} .modal .row{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;border-bottom:1px solid var(--border);padding:8px 0}
-  .pill{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:4px 8px;background:var(--chip)} .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
-  .list button{padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;text-align:left} .list button:hover{border-color:var(--accent)}
+  .pill{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:4px 8px;background:#f1f5f9}
+  .min-badge{display:inline-block;margin-left:8px;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--accent);color:#0f172a;background:#ecfeff}
 </style>
 </head>
 <body>
@@ -53,7 +48,7 @@
         <button id="toggleSettings" class="settings-toggle">⚙️ Settings</button>
       </div>
     </div>
-    <p>Estimator with tiered pricing, savings display, local save/restore, job manager, and sharing.</p>
+    <p>Estimator with tiered pricing, savings display, shop minimums, distance calc, local save/restore, job manager, sharing, and haptics.</p>
   </header>
 
   <main>
@@ -84,10 +79,27 @@
         </div>
         <div><label>&nbsp;</label><button id="add" class="primary">Add Line</button></div>
         <div><label>&nbsp;</label><button id="clear">Clear All</button></div>
-        <div><label for="baselineRate">Baseline $/sqft</label><input id="baselineRate" type="number" step="0.01" min="0" value="12"></div>
-        <div><label>&nbsp;</label><button id="exportCsv">Export CSV</button></div>
-        <div><label>&nbsp;</label><button id="saveJob" class="primary">Save Job</button></div>
-        <div><label>&nbsp;</label><button id="loadJob">Load Job</button></div>
+
+        <div>
+          <label for="baselineRate">Baseline $/sqft</label>
+          <input id="baselineRate" type="number" step="0.01" min="0" value="12">
+        </div>
+        <div>
+          <label for="originZip">Origin ZIP</label>
+          <input id="originZip" type="text" inputmode="numeric" pattern="\d{5}" value="75409">
+        </div>
+        <div>
+          <label for="customerZip">Customer ZIP</label>
+          <input id="customerZip" type="text" inputmode="numeric" pattern="\d{5}" placeholder="e.g., 75001">
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="calcDistance">Calc Distance</button>
+        </div>
+        <div style="grid-column: span 2;">
+          <label>Distance</label>
+          <div id="distanceBadge" class="badge">—</div>
+        </div>
       </div>
 
       <div class="actions"><span class="badge" id="summaryBadge">0 lines • 0.00 sqft</span></div>
@@ -95,7 +107,14 @@
       <table id="grid" role="table" aria-label="results table">
         <thead><tr><th>Label</th><th>Dimensions</th><th>Units</th><th class="right">Qty</th><th class="right">SqFt / Window</th><th class="right">Line SqFt</th><th class="right">Unit Price</th><th class="right">Line Price</th><th></th></tr></thead>
         <tbody></tbody>
-        <tfoot><tr><td colspan="7" class="right">Total</td><td id="totalPrice" class="right">$0.00</td><td></td></tr></tfoot>
+        <tfoot><tr>
+          <td colspan="7" class="right">Total</td>
+          <td class="right">
+            <span id="totalPrice">$0.00</span>
+            <span id="totalMinBadge" class="min-badge" style="display:none">Minimum applied</span>
+          </td>
+          <td></td>
+        </tr></tfoot>
       </table>
 
       <div class="totals">
@@ -111,11 +130,12 @@
         <div class="kpi"><h4>Baseline Total</h4><p id="baselineTotal">$0.00</p></div>
         <div class="kpi"><h4>Current Total</h4><p id="currentTotal">$0.00</p></div>
         <div class="kpi"><h4>Tier Discount Savings</h4><p id="savings" style="color: var(--accent);">$0.00</p></div>
+        <div class="kpi"><h4>Minimum Policy</h4><p id="minPolicy">—</p></div>
         <div class="kpi"><h4>Savings %</h4><p id="savingsPct">0.00%</p></div>
         <div><label>&nbsp;</label><button id="copySummary" class="primary">Copy Summary</button></div>
       </div>
 
-      <p class="note">Pricing: $11/sqft ≤50 sqft, $10/sqft ≤100 sqft, then −$1 per additional 100 sqft, floor = $6.50/sqft (401+ sqft at $6.50). Baseline defaults to $12/sqft.</p>
+      <p class="note">Pricing: $11/sqft ≤50 sqft, $10/sqft ≤100 sqft, then −$1 per additional 100 sqft, <strong>floor $6.50/sqft</strong>. <strong>Shop minimums:</strong> ≤18 sqft is $250 (≤50 miles) or $350 (>50 miles). Baseline defaults to $12/sqft.</p>
 
       <div class="settings" id="settings">
         <header><h3>Settings</h3><div style="display:flex; gap:12px; align-items:center;">
@@ -136,7 +156,7 @@
     </div>
   </main>
 
-  <!-- Job Manager Modal -->
+  <!-- Jobs Modal -->
   <div id="modalOverlay" class="modal-overlay">
     <div class="modal">
       <h3>Saved Jobs</h3>
@@ -184,24 +204,178 @@ function unitPrice(totalSqft){
   return Math.max(price, 6.5);
 }
 
+// Haversine + ZIP geocode
+function haversineMiles(lat1, lon1, lat2, lon2){
+  const toRad = d => d*Math.PI/180;
+  const R = 3958.7613;
+  const dLat = toRad(lat2-lat1), dLon = toRad(lat2-lon1); // corrected below in code
+  return R;
+}
+
+</body>
+</html>
+
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
+
+const $ = sel => document.querySelector(sel);
+const tbody = $('#grid tbody');
+
+function toSqFt(w, h, units){ const wf = units==='in'? w/12 : w; const hf = units==='in'? h/12 : h; return wf*hf; }
+function fmt2(n){ return (Math.round(n*100)/100).toFixed(2); }
+function money(n){ return '$' + fmt2(n); }
+function uid(){ return 'j_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36); }
+function nowISO(){ return new Date().toISOString(); }
+function shortDate(iso){ const d = new Date(iso); return d.toLocaleString(); }
+
+function unitPrice(totalSqft){
+  if (totalSqft <= 50) return 11;
+  if (totalSqft <= 100) return 10;
+  const over = totalSqft - 100;
+  const steps = Math.ceil(over / 100);
+  const price = 10 - steps;
+  return Math.max(price, 6.5);
+}
+
+// Haversine + ZIP geocode
+function haversineMiles(lat1, lon1, lat2, lon2){
+  const toRad = d => d*Math.PI/180;
+  const R = 3958.7613;
+  const dLat = toRad(lat2-lat1), dLon = toRad(lon2-lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+async function zipToLatLon(zip){
+  const res = await fetch('https://api.zippopotam.us/us/' + encodeURIComponent(zip));
+  if (!res.ok) throw new Error('Zip lookup failed');
+  const data = await res.json();
+  const p = (data.places && data.places[0]) || null;
+  if (!p) throw new Error('No place for zip');
+  const lat = parseFloat(p['latitude']), lon = parseFloat(p['longitude']);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) throw new Error('Invalid coords');
+  return {lat, lon};
+}
+async function calcDistanceMiles(){
+  const oz = ($('#originZip').value||'').trim();
+  const cz = ($('#customerZip').value||'').trim();
+  if (oz.length!==5 || cz.length!==5){ $('#distanceBadge').textContent = 'Enter both ZIPs'; return null; }
+  try {
+    const [o,c] = await Promise.all([zipToLatLon(oz), zipToLatLon(cz)]);
+    const miles = haversineMiles(o.lat, o.lon, c.lat, c.lon);
+    const m = Math.round(miles*10)/10;
+    $('#distanceBadge').textContent = m + ' mi';
+    localStorage.setItem('dt_last_distance_mi', String(m));
+    return m;
+  } catch(e){
+    const fallback = prompt('Could not auto-calc distance. Enter miles manually:');
+    const v = parseFloat(fallback||'');
+    if (!Number.isNaN(v)){ $('#distanceBadge').textContent = v.toFixed(1) + ' mi (manual)'; localStorage.setItem('dt_last_distance_mi', String(v)); return v; }
+    $('#distanceBadge').textContent = '—';
+    return null;
+  }
+}
+
+// Presets
 const DEFAULT_PRESETS = ["Kitchen","Bathroom","Bedroom","Living Room","Dining Room","Office","Kids Room","Baby Room","Guest Room","Sunroom","Garage","Entry","Patio","Conference Room","Reception","Front Lobby","Waiting Area","Cash Wrap","Point of Sale","Server Room","Break Room","Manager Office","Training Room","Showroom","Glass Partition","Storefront","Warehouse Office","Customer Service"];
 function getPresets(){ const raw = localStorage.getItem('dt_room_presets'); if (!raw) return DEFAULT_PRESETS.slice(); try { const arr = JSON.parse(raw); if (Array.isArray(arr) && arr.length) return arr; return DEFAULT_PRESETS.slice(); } catch { return DEFAULT_PRESETS.slice(); } }
 function setPresets(arr){ localStorage.setItem('dt_room_presets', JSON.stringify(arr)); }
 
 // Tap feedback
-function shouldHaptic(){
-  const val = (localStorage.getItem('dt_tap_feedback') || 'on');
-  return val === 'on';
+function shouldHaptic(){ return (localStorage.getItem('dt_tap_feedback') || 'on') === 'on'; }
+function setHaptic(v){ localStorage.setItem('dt_tap_feedback', v); }
+function tryHaptic(){ if (!shouldHaptic()) return; try { if ('vibrate' in navigator) navigator.vibrate(15); } catch(e){} }
+
+// Session
+function serialize(){
+  const rows = [...tbody.querySelectorAll('tr')].map(tr => ({ label: tr.dataset.label || '', w: parseFloat(tr.dataset.w), h: parseFloat(tr.dataset.h), u: tr.dataset.u, q: parseInt(tr.dataset.q,10) }));
+  return {
+    customer: ($('#customer').value || '').trim(),
+    rows, baselineRate: parseFloat($('#baselineRate').value) || 12,
+    logoMode: $('#logoMode').value,
+    tapFeedback: (localStorage.getItem('dt_tap_feedback')||'on'),
+    originZip: ($('#originZip').value||'75409'),
+    customerZip: ($('#customerZip').value||''),
+    distanceMi: (localStorage.getItem('dt_last_distance_mi')||null)
+  };
 }
-function setHaptic(val){
-  localStorage.setItem('dt_tap_feedback', val);
-}
-function tryHaptic(){
-  if (!shouldHaptic()) return;
-  try { if ('vibrate' in navigator) navigator.vibrate(15); } catch(e) { /* no-op */ }
+function saveSession(){ localStorage.setItem('dt_estimator', JSON.stringify(serialize())); }
+function loadSession(){
+  const raw = localStorage.getItem('dt_estimator'); if(!raw) return;
+  try{
+    const data = JSON.parse(raw);
+    if (data.customer) $('#customer').value = data.customer;
+    tbody.innerHTML='';
+    (data.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q));
+    if (data.baselineRate) $('#baselineRate').value = data.baselineRate;
+    if (data.logoMode) $('#logoMode').value = data.logoMode;
+    if (data.tapFeedback) setHaptic(data.tapFeedback);
+    if (data.originZip) $('#originZip').value = data.originZip;
+    if (data.customerZip) $('#customerZip').value = data.customerZip;
+    if (data.distanceMi){ localStorage.setItem('dt_last_distance_mi', String(data.distanceMi)); $('#distanceBadge').textContent = parseFloat(data.distanceMi).toFixed(1) + ' mi'; }
+  }catch(e){ console.warn('loadSession fail', e); }
 }
 
-// Label picker
+// Jobs
+function getJobs(){ const raw = localStorage.getItem('dt_jobs'); if (!raw) return []; try{ const arr=JSON.parse(raw); return Array.isArray(arr)?arr:[]; }catch{ return []; } }
+function setJobs(arr){ localStorage.setItem('dt_jobs', JSON.stringify(arr)); }
+function quickMeta(){
+  const rows = [...tbody.querySelectorAll('tr')]; let sqft=0, units=0, total=0;
+  rows.forEach(tr=>{ const w=parseFloat(tr.dataset.w), h=parseFloat(tr.dataset.h), u=tr.dataset.u, q=parseInt(tr.dataset.q,10);
+    const s = toSqFt(w,h,u); sqft += s*q; units += q;
+    const per = parseFloat((tr.querySelector('.unitPrice').textContent||'$0').replace('$',''))||0;
+    total += per*s*q;
+  });
+  const lastDist = parseFloat(localStorage.getItem('dt_last_distance_mi')||'0')||0;
+  if (sqft>0 && sqft<=18){ total = Math.max(total, lastDist>50?350:250); }
+  return {sqft, units, total};
+}
+function saveJob(){ const data = serialize(); const id = uid(); const meta = quickMeta(); const job = Object.assign({}, data, { id, createdAt: nowISO(), meta }); const jobs = getJobs(); jobs.unshift(job); setJobs(jobs); alert('Job saved locally.'); }
+function loadJobById(id){ const jobs = getJobs(); const job = jobs.find(j => j.id === id); if (!job) return; $('#customer').value = job.customer || ''; tbody.innerHTML = ''; (job.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q)); $('#baselineRate').value = job.baselineRate || 12; $('#logoMode').value = job.logoMode || 'auto'; if (job.tapFeedback) setHaptic(job.tapFeedback); if (job.originZip) $('#originZip').value = job.originZip; if (job.customerZip) $('#customerZip').value = job.customerZip; recalc(); saveSession(); }
+function deleteJobById(id){ setJobs(getJobs().filter(j => j.id !== id)); }
+function exportJobs(){ const jobs = getJobs(); const blob = new Blob([JSON.stringify(jobs, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'dynamic_tintz_jobs.json'; a.click(); URL.revokeObjectURL(url); }
+function importJobs(file){ const reader = new FileReader(); reader.onload = (e)=>{ try { const incoming = JSON.parse(e.target.result); if (!Array.isArray(incoming)) throw new Error('Invalid format'); const existing = getJobs(); const map = new Map(existing.map(j=>[j.id, j])); incoming.forEach(j=>{ if(!map.has(j.id)) map.set(j.id, j); }); const merged = Array.from(map.values()).sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||'')); setJobs(merged); renderJobs(); alert('Jobs imported.'); } catch(e){ alert('Import failed.'); } }; reader.readAsText(file); }
+function exportJobById(id){ const jobs = getJobs(); const job = jobs.find(j => j.id === id); if (!job) { alert('Job not found.'); return; } const safeName = (job.customer || 'Untitled Job').replace(/[^a-z0-9\-\_\s]/gi,'').replace(/\s+/g,'_'); const blob = new Blob([JSON.stringify(job, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = safeName + '.json'; a.click(); URL.revokeObjectURL(url); }
+
+// Modal wiring
+const modalOverlay = document.getElementById('modalOverlay');
+function openModal(){ modalOverlay.style.display = 'flex'; renderJobs($('#searchJobs').value||''); }
+function closeModal(){ modalOverlay.style.display = 'none'; }
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('loadJob').addEventListener('click', openModal);
+document.getElementById('saveJob').addEventListener('click', saveJob);
+function renderJobs(filter=''){
+  const container = document.getElementById('jobsContainer'); const jobs = getJobs();
+  if (!jobs.length){ container.innerHTML = '<p class="note">No jobs saved yet.</p>'; return; }
+  const q = (filter||'').trim().toLowerCase();
+  const filtered = !q ? jobs : jobs.filter(j => {
+    const c = (j.customer||'').toLowerCase();
+    const labels = (j.rows||[]).map(r=>(r.label||'').toLowerCase()).join(' ');
+    return c.includes(q) || labels.includes(q);
+  });
+  if (!filtered.length){ container.innerHTML = '<p class="note">No matches.</p>'; return; }
+  container.innerHTML = '';
+  filtered.forEach(job => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.style = 'display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;border-bottom:1px solid var(--border);padding:8px 0';
+    row.innerHTML = `
+      <div><strong>${job.customer || 'Untitled Job'}</strong>
+        <span class="badge">Saved: ${shortDate(job.createdAt||job.id)}</span>
+        <span class="badge">Sqft: ${fmt2(job.meta?.sqft || 0)}</span>
+        <span class="badge">Total: $${fmt2(job.meta?.total || 0)}</span></div>
+      <div class="actions"><button data-id="${job.id}" class="loadBtn">Load</button></div>
+      <div class="actions"><button data-id="${job.id}" class="exportBtn">Export</button></div>
+      <div class="actions"><button data-id="${job.id}" class="deleteBtn">Delete</button></div>`;
+    container.appendChild(row);
+  });
+  container.querySelectorAll('.loadBtn').forEach(btn => btn.addEventListener('click', (e)=>{ loadJobById(e.target.getAttribute('data-id')); closeModal(); }));
+  container.querySelectorAll('.exportBtn').forEach(btn => btn.addEventListener('click', (e)=>{ exportJobById(e.target.getAttribute('data-id')); }));
+  container.querySelectorAll('.deleteBtn').forEach(btn => btn.addEventListener('click', (e)=>{ deleteJobById(e.target.getAttribute('data-id')); renderJobs($('#searchJobs').value||''); }));
+}
+document.getElementById('searchJobs').addEventListener('input', (e)=> renderJobs(e.target.value));
+document.getElementById('exportJobs').addEventListener('click', exportJobs);
+document.getElementById('importJobs').addEventListener('change', (e)=>{ if(e.target.files && e.target.files[0]) importJobs(e.target.files[0]); });
+
+// Label presets modal
 const labelOverlay = document.getElementById('labelOverlay');
 const labelList = document.getElementById('labelList');
 function openLabelPicker(){ labelOverlay.style.display='flex'; renderLabelList($('#searchLabels').value||''); }
@@ -209,48 +383,107 @@ function closeLabelPicker(){ labelOverlay.style.display='none'; }
 document.getElementById('chooseLabel').addEventListener('click', openLabelPicker);
 document.getElementById('closeLabel').addEventListener('click', closeLabelPicker);
 document.getElementById('searchLabels').addEventListener('input', (e)=> renderLabelList(e.target.value));
-function renderLabelList(q=''){ const data = getPresets(); const query = q.trim().toLowerCase(); const filtered = !query ? data : data.filter(x => x.toLowerCase().includes(query)); labelList.innerHTML = ''; filtered.forEach(lbl => { const b = document.createElement('button'); b.textContent = lbl; b.addEventListener('click', ()=>{ document.getElementById('label').value = lbl; closeLabelPicker(); }); labelList.appendChild(b); }); }
+function renderLabelList(q=''){
+  const data = getPresets(); const query = q.trim().toLowerCase();
+  const filtered = !query ? data : data.filter(x => x.toLowerCase().includes(query));
+  labelList.innerHTML = '';
+  filtered.forEach(lbl => { const b = document.createElement('button'); b.textContent = lbl; b.addEventListener('click', ()=>{ document.getElementById('label').value = lbl; closeLabelPicker(); }); labelList.appendChild(b); });
+}
 
-// Session
-function serialize(){ const rows = [...tbody.querySelectorAll('tr')].map(tr => ({ label: tr.dataset.label || '', w: parseFloat(tr.dataset.w), h: parseFloat(tr.dataset.h), u: tr.dataset.u, q: parseInt(tr.dataset.q,10) })); return { customer: ($('#customer').value || '').trim(), rows, baselineRate: parseFloat($('#baselineRate').value) || 12, logoMode: $('#logoMode').value, tapFeedback: (localStorage.getItem('dt_tap_feedback')||'on') }; }
-function saveSession(){ localStorage.setItem('dt_estimator', JSON.stringify(serialize())); }
-function loadSession(){ const raw = localStorage.getItem('dt_estimator'); if(!raw) return; try { const data = JSON.parse(raw); if (data.customer) $('#customer').value = data.customer; tbody.innerHTML = ''; (data.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q)); if (data.baselineRate) $('#baselineRate').value = data.baselineRate; if (data.logoMode) $('#logoMode').value = data.logoMode; if (data.tapFeedback) setHaptic(data.tapFeedback); } catch(e){ console.warn('Failed to load session', e); } }
+// Core table logic
+function addLine(label,w,h,u,q){
+  if(!(w>0 && h>0 && q>0)) return;
+  const tr = document.createElement('tr');
+  tr.dataset.label = (label||'').trim();
+  tr.dataset.w = w; tr.dataset.h = h; tr.dataset.u = u; tr.dataset.q = q;
+  const sqft = toSqFt(w,h,u);
+  tr.innerHTML = `
+    <td>${tr.dataset.label}</td><td>${w} x ${h}</td><td>${u}</td><td class="right">${q}</td>
+    <td class="right perSq">${fmt2(sqft)}</td><td class="right lineSqFt">${fmt2(sqft*q)}</td>
+    <td class="right unitPrice">$0.00</td><td class="right linePrice">$0.00</td>
+    <td class="row-actions"><button class="btn-icon duplicate" title="Duplicate">＋</button><button class="btn-icon delete" title="Delete">✕</button></td>`;
+  tr.querySelector('.delete').addEventListener('click', ()=>{ tr.remove(); recalc(); saveSession(); });
+  tr.querySelector('.duplicate').addEventListener('click', ()=>{ const w = parseFloat(tr.dataset.w), h = parseFloat(tr.dataset.h), u = tr.dataset.u, lbl = tr.dataset.label; addLine(lbl, w, h, u, 1); });
+  tbody.appendChild(tr); recalc(); saveSession();
+}
 
-// Jobs
-function getJobs(){ const raw = localStorage.getItem('dt_jobs'); if (!raw) return []; try{ const arr=JSON.parse(raw); return Array.isArray(arr)?arr:[]; }catch{ return []; } }
-function setJobs(arr){ localStorage.setItem('dt_jobs', JSON.stringify(arr)); }
-function quickMeta(){ const rows = [...tbody.querySelectorAll('tr')]; let sqft=0, units=0, total=0; rows.forEach(tr=>{ const w=parseFloat(tr.dataset.w), h=parseFloat(tr.dataset.h), u=tr.dataset.u, q=parseInt(tr.dataset.q,10); const s = toSqFt(w,h,u); sqft += s*q; units += q; const per = parseFloat((tr.querySelector('.unitPrice').textContent||'$0').replace('$',''))||0; total += per*s*q; }); return {sqft, units, total}; }
-function saveJob(){ const data = serialize(); const id = uid(); const meta = quickMeta(); const job = Object.assign({}, data, { id, createdAt: nowISO(), meta }); const jobs = getJobs(); jobs.unshift(job); setJobs(jobs); alert('Job saved locally.'); }
-function loadJobById(id){ const jobs = getJobs(); const job = jobs.find(j => j.id === id); if (!job) return; $('#customer').value = job.customer || ''; tbody.innerHTML = ''; (job.rows||[]).forEach(r => addLine(r.label||'', r.w, r.h, r.u, r.q)); $('#baselineRate').value = job.baselineRate || 12; $('#logoMode').value = job.logoMode || 'auto'; if (job.tapFeedback) setHaptic(job.tapFeedback); recalc(); saveSession(); }
-function deleteJobById(id){ setJobs(getJobs().filter(j => j.id !== id)); }
-function exportJobs(){ const jobs = getJobs(); const blob = new Blob([JSON.stringify(jobs, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'dynamic_tintz_jobs.json'; a.click(); URL.revokeObjectURL(url); }
-function importJobs(file){ const reader = new FileReader(); reader.onload = (e)=>{ try { const incoming = JSON.parse(e.target.result); if (!Array.isArray(incoming)) throw new Error('Invalid format'); const existing = getJobs(); const map = new Map(existing.map(j=>[j.id, j])); incoming.forEach(j=>{ if(!map.has(j.id)) map.set(j.id, j); }); const merged = Array.from(map.values()).sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||'')); setJobs(merged); renderJobs(); alert('Jobs imported.'); } catch(err) { alert('Import failed: '+ err.message); } }; reader.readAsText(file); }
-function exportJobById(id){ const jobs = getJobs(); const job = jobs.find(j => j.id === id); if (!job) { alert('Job not found.'); return; } const safeName = (job.customer || 'Untitled Job').replace(/[^a-z0-9\-\_\s]/gi,'').replace(/\s+/g,'_'); const blob = new Blob([JSON.stringify(job, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = safeName + '.json'; a.click(); URL.revokeObjectURL(url); }
+function collectTotals(){
+  let totalSqft = 0, totalUnits = 0;
+  [...tbody.querySelectorAll('tr')].forEach(tr => {
+    const sqft = toSqFt(parseFloat(tr.dataset.w), parseFloat(tr.dataset.h), tr.dataset.u);
+    const q = parseInt(tr.dataset.q,10);
+    totalSqft += sqft * q;
+    totalUnits += q;
+  });
+  return { totalSqft, totalUnits };
+}
 
-const modalOverlay = document.getElementById('modalOverlay');
-function openModal(){ modalOverlay.style.display = 'flex'; renderJobs($('#searchJobs').value||''); }
-function closeModal(){ modalOverlay.style.display = 'none'; }
-document.getElementById('closeModal').addEventListener('click', closeModal);
-document.getElementById('loadJob').addEventListener('click', openModal);
-document.getElementById('saveJob').addEventListener('click', saveJob);
-function renderJobs(filter=''){ const container = document.getElementById('jobsContainer'); const jobs = getJobs(); if (!jobs.length) { container.innerHTML = '<p class="note">No jobs saved yet.</p>'; return; } const q = filter.trim().toLowerCase(); const filtered = !q ? jobs : jobs.filter(j => { const c = (j.customer||'').toLowerCase(); const labels = (j.rows||[]).map(r=>(r.label||'').toLowerCase()).join(' '); return c.includes(q) || labels.includes(q); }); if (!filtered.length) { container.innerHTML = '<p class="note">No matches.</p>'; return; } container.innerHTML = ''; filtered.forEach(job => { const row = document.createElement('div'); row.className = 'row'; row.innerHTML = `
-      <div><strong>${job.customer || 'Untitled Job'}</strong>
-        <span class="pill">Saved: ${shortDate(job.createdAt)}</span>
-        <span class="pill">Sqft: ${fmt2(job.meta?.sqft || 0)}</span>
-        <span class="pill">Total: $${fmt2(job.meta?.total || 0)}</span></div>
-      <div class="actions"><button data-id="${job.id}" class="loadBtn">Load</button></div>
-      <div class="actions"><button data-id="${job.id}" class="exportBtn">Export</button></div>
-      <div class="actions"><button data-id="${job.id}" class="deleteBtn">Delete</button></div>`; container.appendChild(row); }); container.querySelectorAll('.loadBtn').forEach(btn => btn.addEventListener('click', (e)=>{ loadJobById(e.target.getAttribute('data-id')); closeModal(); })); container.querySelectorAll('.exportBtn').forEach(btn => btn.addEventListener('click', (e)=>{ exportJobById(e.target.getAttribute('data-id')); })); container.querySelectorAll('.deleteBtn').forEach(btn => btn.addEventListener('click', (e)=>{ deleteJobById(e.target.getAttribute('data-id')); renderJobs($('#searchJobs').value||''); })); }
-document.getElementById('searchJobs').addEventListener('input', (e)=> renderJobs(e.target.value));
-document.getElementById('exportJobs').addEventListener('click', exportJobs);
-document.getElementById('importJobs').addEventListener('change', (e)=>{ if(e.target.files && e.target.files[0]) importJobs(e.target.files[0]); });
+function recalc(){
+  const { totalSqft, totalUnits } = collectTotals();
+  const pricePer = unitPrice(totalSqft);
 
-const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-function applyLogo(){ const mode = ($('#logoMode').value || 'auto'); const isDark = mql && mql.matches; let useDark = (mode === 'auto') ? isDark : (mode === 'dark'); $('#brandLogo').src = useDark ? 'logo-dark.png' : 'logo-light.png'; }
-if (mql) mql.addEventListener('change', applyLogo);
+  [...tbody.querySelectorAll('tr')].forEach(tr => {
+    const sqft = toSqFt(parseFloat(tr.dataset.w), parseFloat(tr.dataset.h), tr.dataset.u);
+    const q = parseInt(tr.dataset.q,10);
+    tr.querySelector('.lineSqFt').textContent = fmt2(sqft*q);
+    tr.querySelector('.unitPrice').textContent = money(pricePer);
+    tr.querySelector('.linePrice').textContent = money(pricePer * sqft * q);
+  });
 
-// Add Line handler with haptic + micro-bounce + clear
-document.getElementById('add').addEventListener('click', ()=>{ 
+  document.getElementById('kpiTotal').textContent = fmt2(totalSqft) + ' sqft';
+  document.getElementById('kpiUnits').textContent = (totalUnits||0).toString();
+  document.getElementById('kpiAvg').textContent = fmt2(totalUnits>0 ? totalSqft/totalUnits : 0) + ' sqft';
+  document.getElementById('kpiPrice').textContent = money(pricePer) + ' / sqft';
+
+  const lines = tbody.querySelectorAll('tr').length;
+  document.getElementById('summaryBadge').textContent = `${lines} ${lines===1?'line':'lines'} • ${fmt2(totalSqft)} sqft`;
+
+  let currentTotal = 0;
+  [...tbody.querySelectorAll('.linePrice')].forEach(td => { currentTotal += parseFloat(td.textContent.replace('$','')); });
+
+  // —— Shop minimum policy ——
+  const lastDist = parseFloat(localStorage.getItem('dt_last_distance_mi')||'0') || 0;
+  let minPolicyText = '—';
+  let minFloor = 0;
+  if (totalSqft > 0 && totalSqft <= 18){
+    if (lastDist > 50){
+      minFloor = 350;
+      minPolicyText = `≤18 sqft @ $350 minimum (distance ${fmt2(lastDist)} mi)`;
+    } else {
+      minFloor = 250;
+      minPolicyText = `≤18 sqft @ $250 minimum (distance ${fmt2(lastDist)} mi)`;
+    }
+  }
+  const minBadge = document.getElementById('totalMinBadge');
+  const totalPriceEl = document.getElementById('totalPrice');
+
+  const beforeFloor = currentTotal;
+  if (minFloor > 0 && currentTotal < minFloor){ currentTotal = minFloor; }
+
+  // Toggle badge if minimum changed the total
+  if (minFloor > 0 && currentTotal > beforeFloor){
+    minBadge.style.display = 'inline-block';
+    minBadge.textContent = `Minimum applied (${money(minFloor)})`;
+  } else {
+    minBadge.style.display = 'none';
+  }
+
+  document.getElementById('minPolicy').textContent = minPolicyText;
+  totalPriceEl.textContent = money(currentTotal);
+
+  const baseline = parseFloat($('#baselineRate').value) || 12;
+  const baselineTotal = baseline * totalSqft;
+  const savings = Math.max(baselineTotal - currentTotal, 0);
+  const pct = baselineTotal > 0 ? (savings / baselineTotal * 100) : 0;
+
+  document.getElementById('baselineTotal').textContent = money(baselineTotal);
+  document.getElementById('currentTotal').textContent = money(currentTotal);
+  document.getElementById('savings').textContent = money(savings);
+  document.getElementById('savingsPct').textContent = fmt2(pct) + '%';
+}
+
+// Button bindings
+document.getElementById('add').addEventListener('click', ()=>{
   const labelEl = document.getElementById('label');
   const wEl = document.getElementById('width');
   const hEl = document.getElementById('height');
@@ -275,92 +508,68 @@ document.getElementById('add').addEventListener('click', ()=>{
 });
 
 document.getElementById('clear').addEventListener('click', ()=>{ tbody.innerHTML=''; recalc(); saveSession(); });
+document.getElementById('calcDistance').addEventListener('click', async ()=>{ await calcDistanceMiles(); recalc(); saveSession(); });
 
-// CSV + Copy Summary (unchanged)
-document.getElementById('exportCsv').addEventListener('click', ()=>{ let csv = 'Customer,Label,Width,Height,Units,Quantity,SqFt per Window,Line SqFt,Unit Price,Line Price\n'; const customer = ($('#customer').value || '').replace(/,/g,''); [...tbody.querySelectorAll('tr')].forEach(tr => { const lbl = (tr.dataset.label || '').replace(/,/g,''); const w = tr.dataset.w, h = tr.dataset.h, u = tr.dataset.u, q = tr.dataset.q; const perSq = tr.querySelector('.perSq').textContent; const lineSq = tr.querySelector('.lineSqFt').textContent; const up = tr.querySelector('.unitPrice').textContent; const lp = tr.querySelector('.linePrice').textContent; csv += `${customer},${lbl},${w},${h},${u},${q},${perSq},${lineSq},${up},${lp}\n`; }); const totalText = document.getElementById('totalPrice').textContent; csv += `,,,,,,,Total,${totalText}\n`; const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'dynamic_tintz_estimate.csv'; a.click(); URL.revokeObjectURL(url); });
-document.getElementById('copySummary').addEventListener('click', ()=>{ const baseline = parseFloat($('#baselineRate').value) || 12; const totalSqft = parseFloat((document.getElementById('kpiTotal').textContent||'0').replace(' sqft','')) || 0; const currentTotal = parseFloat($('#currentTotal').textContent.replace('$','')); const baselineTotal = baseline * totalSqft; const savings = Math.max(baselineTotal - currentTotal, 0); const pct = baselineTotal > 0 ? (savings / baselineTotal * 100) : 0; const text = `Dynamic Tintz Estimate\nCustomer: ${($('#customer').value||'').trim()}\nTotal sqft: ${fmt2(totalSqft)} sqft\nEffective rate: ${$('#kpiPrice').textContent}\nCurrent total: ${$('#currentTotal').textContent}\nBaseline ($${fmt2(baseline)}/sqft): $${fmt2(baselineTotal)}\nTier discount savings: $${fmt2(savings)} (${fmt2(pct)}%)`; navigator.clipboard.writeText(text).then(()=>{ alert('Summary copied to clipboard.'); }); });
-
-// Settings: open/close + persist tap feedback
-const toggle = document.getElementById('toggleSettings'); const settingsContent = document.getElementById('settingsContent'); let settingsOpen = false;
-toggle.addEventListener('click', ()=>{ settingsOpen = !settingsOpen; settingsContent.style.display = settingsOpen ? 'block' : 'none'; });
-document.getElementById('savePresets').addEventListener('click', ()=>{ const raw = document.getElementById('presetInput').value || ''; const arr = raw.split(',').map(s => s.trim()).filter(Boolean); const unique = Array.from(new Set(arr)); setPresets(unique); alert('Room presets saved.'); });
-
-const tapSel = document.getElementById('tapFeedback');
-tapSel.value = (localStorage.getItem('dt_tap_feedback') || 'on');
-tapSel.addEventListener('change', (e)=> setHaptic(e.target.value) );
-
-const mqlInit = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-if (mqlInit) mqlInit.addEventListener('change', applyLogo);
-
-function recalc(){
-  const { totalSqft, totalUnits } = collectTotals();
-  const pricePer = unitPrice(totalSqft);
-
+document.getElementById('exportCsv').addEventListener('click', ()=>{
+  let csv = 'Customer,Label,Width,Height,Units,Quantity,SqFt per Window,Line SqFt,Unit Price,Line Price\\n';
+  const customer = ($('#customer').value || '').replace(/,/g,'');
   [...tbody.querySelectorAll('tr')].forEach(tr => {
-    const sqft = toSqFt(parseFloat(tr.dataset.w), parseFloat(tr.dataset.h), tr.dataset.u);
-    const q = parseInt(tr.dataset.q,10);
-    tr.querySelector('.lineSqFt').textContent = fmt2(sqft*q);
-    tr.querySelector('.unitPrice').textContent = money(pricePer);
-    tr.querySelector('.linePrice').textContent = money(pricePer * sqft * q);
+    const lbl = (tr.dataset.label || '').replace(/,/g,'');
+    const w = tr.dataset.w, h = tr.dataset.h, u = tr.dataset.u, q = tr.dataset.q;
+    const perSq = tr.querySelector('.perSq').textContent;
+    const lineSq = tr.querySelector('.lineSqFt').textContent;
+    const unitPrice = tr.querySelector('.unitPrice').textContent.replace('$','');
+    const linePrice = tr.querySelector('.linePrice').textContent.replace('$','');
+    csv += [customer,lbl,w,h,u,q,perSq,lineSq,unitPrice,linePrice].join(',') + '\\n';
   });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'dynamic_tintz_lines.csv'; a.click(); URL.revokeObjectURL(url);
+});
 
-  document.getElementById('kpiTotal').textContent = fmt2(totalSqft) + ' sqft';
-  document.getElementById('kpiUnits').textContent = (totalUnits||0).toString();
-  const perWindowAvg = totalUnits>0 ? totalSqft/totalUnits : 0;
-  document.getElementById('kpiAvg').textContent = fmt2(perWindowAvg) + ' sqft';
-  document.getElementById('kpiPrice').textContent = money(pricePer) + ' / sqft';
-
-  const lines = tbody.querySelectorAll('tr').length;
-  document.getElementById('summaryBadge').textContent = `${lines} ${lines===1?'line':'lines'} • ${fmt2(totalSqft)} sqft`;
-
-  let currentTotal = 0;
-  [...tbody.querySelectorAll('.linePrice')].forEach(td => { currentTotal += parseFloat(td.textContent.replace('$','')); });
-  document.getElementById('totalPrice').textContent = money(currentTotal);
-
-  const baseline = parseFloat(document.getElementById('baselineRate').value) || 12;
+document.getElementById('copySummary').addEventListener('click', ()=>{
+  const baseline = parseFloat($('#baselineRate').value) || 12;
+  const totalSqft = parseFloat((document.getElementById('kpiTotal').textContent||'0').replace(' sqft','')) || 0;
+  const currentTotal = parseFloat($('#currentTotal').textContent.replace('$',''));
   const baselineTotal = baseline * totalSqft;
   const savings = Math.max(baselineTotal - currentTotal, 0);
   const pct = baselineTotal > 0 ? (savings / baselineTotal * 100) : 0;
+  const dist = localStorage.getItem('dt_last_distance_mi');
+  const minText = document.getElementById('minPolicy').textContent;
+  const out = `Customer: ${($('#customer').value||'')}
+Total sqft: ${fmt2(totalSqft)}
+Baseline @ $${fmt2(baseline)}: $${fmt2(baselineTotal)}
+Estimated total: $${fmt2(currentTotal)}
+Tier discount savings vs $${fmt2(baseline)}: $${fmt2(savings)} (${fmt2(pct)}%)
+Distance: ${dist ? dist + ' mi' : 'n/a'}
+Minimum policy: ${minText || '—'}`;
+  navigator.clipboard && navigator.clipboard.writeText(out);
+  alert('Summary copied.');
+});
 
-  document.getElementById('baselineTotal').textContent = money(baselineTotal);
-  document.getElementById('currentTotal').textContent = money(currentTotal);
-  document.getElementById('savings').textContent = money(savings);
-  document.getElementById('savingsPct').textContent = fmt2(pct) + '%';
-}
+// Settings
+const toggle = document.getElementById('toggleSettings'); const settingsContent = document.getElementById('settingsContent'); let settingsOpen = false;
+toggle.addEventListener('click', ()=>{ settingsOpen = !settingsOpen; settingsContent.style.display = settingsOpen ? 'block' : 'none'; });
+document.getElementById('savePresets').addEventListener('click', ()=>{ const raw = document.getElementById('presetInput').value || ''; const arr = raw.split(',').map(s => s.trim()).filter(Boolean); const unique = Array.from(new Set(arr)); setPresets(unique); alert('Room presets saved.'); });
+const tapSel = document.getElementById('tapFeedback'); tapSel.value = (localStorage.getItem('dt_tap_feedback') || 'on'); tapSel.addEventListener('change', (e)=> setHaptic(e.target.value) );
 
-function collectTotals(){
-  let totalSqft = 0, totalUnits = 0;
-  [...tbody.querySelectorAll('tr')].forEach(tr => {
-    const sqft = toSqFt(parseFloat(tr.dataset.w), parseFloat(tr.dataset.h), tr.dataset.u);
-    const q = parseInt(tr.dataset.q,10);
-    totalSqft += sqft * q;
-    totalUnits += q;
-  });
-  return { totalSqft, totalUnits };
-}
+// Logo preference
+const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+function applyLogo(){ const mode = ($('#logoMode').value || 'auto'); const isDark = mql && mql.matches; const useDark = (mode==='auto') ? isDark : (mode==='dark'); $('#brandLogo').src = useDark ? 'logo-dark.png' : 'logo-light.png'; }
+document.getElementById('logoMode').addEventListener('change', ()=>{ applyLogo(); saveSession(); });
+if (mql) mql.addEventListener('change', applyLogo);
 
-function addLine(label,w,h,u,q){
-  if(!(w>0 && h>0 && q>0)) return;
-  const tr = document.createElement('tr');
-  tr.dataset.label = (label||'').trim();
-  tr.dataset.w = w; tr.dataset.h = h; tr.dataset.u = u; tr.dataset.q = q;
-  const sqft = toSqFt(w,h,u);
-  tr.innerHTML = `
-    <td>${tr.dataset.label}</td><td>${w} x ${h}</td><td>${u}</td><td class="right">${q}</td>
-    <td class="right perSq">${fmt2(sqft)}</td><td class="right lineSqFt">${fmt2(sqft*q)}</td>
-    <td class="right unitPrice">$0.00</td><td class="right linePrice">$0.00</td>
-    <td class="row-actions"><button class="btn-icon duplicate" title="Duplicate">＋</button><button class="btn-icon delete" title="Delete">✕</button></td>`;
-  tr.querySelector('.delete').addEventListener('click', ()=>{ tr.remove(); recalc(); saveSession(); });
-  tr.querySelector('.duplicate').addEventListener('click', ()=>{ const w = parseFloat(tr.dataset.w), h = parseFloat(tr.dataset.h), u = tr.dataset.u, lbl = tr.dataset.label; addLine(lbl, w, h, u, 1); });
-  tbody.appendChild(tr); recalc(); saveSession();
-}
-
+// Init
 function init(){
   if (!localStorage.getItem('dt_room_presets')) setPresets(DEFAULT_PRESETS);
   document.getElementById('presetInput').value = getPresets().join(',');
   applyLogo();
+  loadSession();
+  const oz = ($('#originZip').value||'').trim();
+  const cz = ($('#customerZip').value||'').trim();
+  if (oz.length===5 && cz.length===5) { calcDistanceMiles().then(recalc); } else { recalc(); }
 }
 init();
+
 </script>
 </body>
 </html>
